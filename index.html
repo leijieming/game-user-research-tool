@@ -1,0 +1,2977 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>游戏设计用户研究工具 v2.0</title>
+
+    <!--
+        游戏设计用户研究工具 v2.0
+        功能：竞品分析、用户画像、用户访谈、问卷设计、数据分析、可视化中心、报告生成
+        版本：2.0.0
+        更新：2025-05-08
+    -->
+
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+    
+    <!-- ECharts 5 -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    
+    <!-- echarts-wordcloud -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts-wordcloud@2.1.0/dist/echarts-wordcloud.min.js"></script>
+    
+    <!-- SheetJS (xlsx) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <!-- docx.js -->
+    <script src="https://cdn.jsdelivr.net/npm/docx@8.2.2/build/index.umd.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #4F46E5;
+            --primary-hover: #4338CA;
+            --bg: #F9FAFB;
+            --card-bg: #FFFFFF;
+            --text: #1F2937;
+            --text-secondary: #6B7280;
+            --border: #E5E7EB;
+            --success: #10B981;
+            --warning: #F59E0B;
+            --danger: #EF4444;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg);
+            padding: 20px;
+            color: var(--text);
+            line-height: 1.6;
+        }
+        
+        #app {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .app-container {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+        }
+        
+        .app-header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+            color: white;
+            padding: 24px 32px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        
+        .app-header h1 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .tab-nav {
+            display: flex;
+            background-color: #fff;
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+            scrollbar-width: thin;
+        }
+        
+        .tab-nav::-webkit-scrollbar {
+            height: 4px;
+        }
+        
+        .tab-nav::-webkit-scrollbar-thumb {
+            background-color: var(--border);
+            border-radius: 2px;
+        }
+        
+        .tab-btn {
+            padding: 16px 24px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            white-space: nowrap;
+            position: relative;
+            transition: color 0.2s, background-color 0.2s;
+        }
+        
+        .tab-btn:hover {
+            color: var(--primary);
+            background-color: rgba(79, 70, 229, 0.05);
+        }
+        
+        .tab-btn.active {
+            color: var(--primary);
+        }
+        
+        .tab-btn.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background-color: var(--primary);
+            border-radius: 3px 3px 0 0;
+        }
+        
+        .main-content {
+            padding: 24px;
+            min-height: 500px;
+        }
+        
+        .module-container h2 {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--primary);
+        }
+        
+        .module-placeholder {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-secondary);
+            background-color: var(--bg);
+            border-radius: 8px;
+            border: 2px dashed var(--border);
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--primary-hover);
+        }
+        
+        .btn-secondary {
+            background-color: #E5E7EB;
+            color: var(--text);
+        }
+        
+        .btn-secondary:hover:not(:disabled) {
+            background-color: #D1D5DB;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .btn-danger:hover:not(:disabled) {
+            background-color: #DC2626;
+        }
+        
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+        
+        .btn-success:hover:not(:disabled) {
+            background-color: #059669;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        .btn-lg {
+            padding: 14px 28px;
+            font-size: 16px;
+        }
+        
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .card-toggle {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s;
+        }
+        
+        .card-toggle.collapsed {
+            transform: rotate(-90deg);
+        }
+        
+        .card-content {
+            margin-top: 16px;
+        }
+        
+        .card-content.collapsed {
+            display: none;
+        }
+        
+        .collapsible-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+        
+        .collapsible-card .card-header {
+            padding: 16px 20px;
+            background-color: var(--bg);
+        }
+        
+        .collapsible-card .card-content {
+            padding: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 16px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+            margin-bottom: 6px;
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 14px;
+            color: var(--text);
+            background-color: #fff;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+        }
+        
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .form-row {
+            display: grid;
+            gap: 16px;
+        }
+        
+        .form-row-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .form-row-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+        
+        .template-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 20px;
+        }
+        
+        .template-card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .template-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
+            transform: translateY(-2px);
+        }
+        
+        .template-card h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        
+        .template-card p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+        
+        .template-tag {
+            display: inline-block;
+            padding: 4px 10px;
+            background-color: rgba(79, 70, 229, 0.1);
+            color: var(--primary);
+            font-size: 12px;
+            border-radius: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 16px;
+        }
+        
+        table th,
+        table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        table th {
+            background-color: var(--bg);
+            font-weight: 600;
+            color: var(--text);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        table tr:hover {
+            background-color: rgba(79, 70, 229, 0.02);
+        }
+        
+        .chart-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .chart-card h3 {
+            margin: 0 0 16px 0;
+            color: var(--text);
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .chart-container {
+            width: 100%;
+            height: 300px;
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            padding: 14px 24px;
+            background-color: var(--text);
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .toast.success {
+            background-color: var(--success);
+        }
+        
+        .toast.warning {
+            background-color: var(--warning);
+        }
+        
+        .toast.error {
+            background-color: var(--danger);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+        
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        .empty-state h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text);
+            margin-bottom: 8px;
+        }
+        
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .badge-primary {
+            background-color: rgba(79, 70, 229, 0.1);
+            color: var(--primary);
+        }
+        
+        .badge-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+        
+        .badge-warning {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+        
+        .divider {
+            height: 1px;
+            background-color: var(--border);
+            margin: 20px 0;
+        }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        .text-right {
+            text-align: right;
+        }
+        
+        .flex {
+            display: flex;
+        }
+        
+        .flex-between {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .gap-2 {
+            gap: 8px;
+        }
+        
+        .gap-4 {
+            gap: 16px;
+        }
+        
+        .mt-4 {
+            margin-top: 16px;
+        }
+        
+        .mb-4 {
+            margin-bottom: 16px;
+        }
+        
+        /* 卡片折叠样式 */
+        .collapsible-card {
+            margin-bottom: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .collapsible-card .card-body {
+            transition: all 0.3s ease;
+        }
+
+        .collapsible-card.collapsed .card-body {
+            display: none;
+        }
+
+        .card-header {
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        .card-header:hover {
+            background: #f3f4f6;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+            
+            .app-header {
+                padding: 16px;
+            }
+            
+            .app-header h1 {
+                font-size: 18px;
+            }
+            
+            .tab-btn {
+                padding: 12px 16px;
+                font-size: 13px;
+            }
+            
+            .main-content {
+                padding: 16px;
+            }
+            
+            .module-container h2 {
+                font-size: 18px;
+            }
+            
+            .form-row-2,
+            .form-row-3 {
+                grid-template-columns: 1fr;
+            }
+            
+            .template-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .toast {
+                left: 16px;
+                right: 16px;
+                bottom: 16px;
+            }
+        }
+
+        /* 访谈问题拖拽样式 */
+        .question-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .question-list > div:hover {
+            border-color: var(--primary) !important;
+            background: var(--card-bg) !important;
+        }
+
+        .question-list > div:active {
+            cursor: grabbing;
+            background: #e0e7ff !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="app-container">
+            <!-- Header -->
+            <header class="app-header">
+                <h1>{{ appTitle }}</h1>
+                <div class="header-actions">
+                    <button class="btn btn-secondary" @click="importData">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        导入数据
+                    </button>
+                    <button class="btn btn-secondary" @click="exportData">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="7 10 12 15 17 10"/>
+                            <line x1="12" y1="15" x2="12" y2="3"/>
+                        </svg>
+                        导出数据
+                    </button>
+                    <button class="btn btn-primary" @click="generateReport">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                        生成报告
+                    </button>
+                </div>
+            </header>
+            
+            <!-- Tab Navigation -->
+            <nav class="tab-nav">
+                <button 
+                    v-for="tab in tabs" 
+                    :key="tab.id"
+                    :class="['tab-btn', { active: activeTab === tab.id }]"
+                    @click="activeTab = tab.id"
+                >
+                    {{ tab.name }}
+                </button>
+            </nav>
+            
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- 竞品分析模块 -->
+                <div v-if="activeTab === 'competitor'" class="module-container">
+                    <h2>竞品分析</h2>
+                    
+                    <!-- 案例库卡片 -->
+                    <div class="card collapsible-card" :class="{ collapsed: collapsedCards['caseLibrary'] }">
+                        <div class="card-header" @click="toggleCard('caseLibrary')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>案例库（点击{{ collapsedCards['caseLibrary'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['caseLibrary']" style="padding-top: 16px;">
+                            <p style="color: var(--text-secondary); margin-bottom: 12px;">点击案例卡片将其添加到分析表中：</p>
+                            <div class="template-grid">
+                                <div v-for="c in caseStudies" :key="c.name" class="template-card" @click="loadCase(c)">
+                                    <h4>{{ c.name }}</h4>
+                                    <p>{{ c.type }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 添加游戏卡片 -->
+                    <div class="card collapsible-card" :class="{ collapsed: collapsedCards['addGame'] }">
+                        <div class="card-header" @click="toggleCard('addGame')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>添加分析游戏（点击{{ collapsedCards['addGame'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['addGame']" style="padding-top: 16px;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>游戏名称</label>
+                                    <input v-model="newGameName" placeholder="请输入游戏名称" @keyup.enter="addGame" />
+                                </div>
+                                <div class="form-group">
+                                    <label>游戏类型</label>
+                                    <select v-model="newGameType">
+                                        <option value="">选择类型</option>
+                                        <option value="二次元/卡牌">二次元/卡牌</option>
+                                        <option value="MOBA/竞技">MOBA/竞技</option>
+                                        <option value="休闲/派对">休闲/派对</option>
+                                        <option value="SLG/策略">SLG/策略</option>
+                                        <option value="RPG/MMO">RPG/MMO</option>
+                                        <option value="射击/动作">射击/动作</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="display: flex; align-items: flex-end;">
+                                    <button class="btn btn-primary" @click="addGame">添加游戏</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 对比分析卡片 -->
+                    <div v-if="competitorAnalysis.games.length > 0" class="card collapsible-card">
+                        <div class="card-header" @click="toggleCard('comparison')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>对比分析表（点击{{ collapsedCards['comparison'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['comparison']" style="padding-top: 16px;">
+                            <div style="overflow-x: auto;">
+                                <table style="min-width: 600px;">
+                                    <thead>
+                                        <tr>
+                                            <th style="min-width: 180px;">分析维度</th>
+                                            <th v-for="game in competitorAnalysis.games" :key="game.id" style="min-width: 120px;">
+                                                {{ game.name }}
+                                                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px;">{{ game.type }}</div>
+                                                <button class="btn btn-danger" style="padding: 2px 8px; margin-top: 8px; font-size: 0.8rem;" @click="removeGame(game.id)">删除</button>
+                                            </th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr v-for="dim in competitorAnalysis.dimensions" :key="dim.id">
+                                            <td>
+                                                <strong>{{ dim.name }}</strong>
+                                                <div style="font-size: 0.8rem; color: var(--text-secondary);">
+                                                    <span v-for="(sub, i) in dim.subItems" :key="i">{{ sub }}{{ i < dim.subItems.length - 1 ? ', ' : '' }}</span>
+                                                </div>
+                                            </td>
+                                            <td v-for="game in competitorAnalysis.games" :key="game.id">
+                                                <input type="number" min="1" max="5" v-model.number="game.scores[dim.id]" style="width: 50px; padding: 6px; text-align: center;" />
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 文字描述卡片 -->
+                    <div v-if="competitorAnalysis.games.length > 0" class="card collapsible-card">
+                        <div class="card-header" @click="toggleCard('descriptions')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>详细文字分析（点击{{ collapsedCards['descriptions'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['descriptions']" style="padding-top: 16px;">
+                            <div v-for="game in competitorAnalysis.games" :key="'desc-' + game.id" style="margin-bottom: 24px; padding: 16px; background: var(--bg); border-radius: 8px;">
+                                <h4 style="margin: 0 0 12px 0; color: var(--primary);">{{ game.name }}</h4>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>玩法特点</label>
+                                        <textarea v-model="game.description.gameplay" rows="2" placeholder="描述游戏的玩法特点..." style="resize: vertical;"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>优势分析</label>
+                                        <textarea v-model="game.description.advantages" rows="2" placeholder="分析游戏的优势..." style="resize: vertical;"></textarea>
+                                    </div>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label>劣势分析</label>
+                                        <textarea v-model="game.description.disadvantages" rows="2" placeholder="分析游戏的不足..." style="resize: vertical;"></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>改进建议</label>
+                                        <textarea v-model="game.description.suggestions" rows="2" placeholder="提出改进建议..." style="resize: vertical;"></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 雷达图卡片 -->
+                    <div v-if="competitorAnalysis.games.length > 0" class="card collapsible-card">
+                        <div class="card-header" @click="toggleCard('radar')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>雷达图可视化（点击{{ collapsedCards['radar'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['radar']" style="padding-top: 16px;">
+                            <div id="competitorRadarChart" style="width: 100%; height: 400px; margin-bottom: 16px;"></div>
+                            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                                <button class="btn btn-primary" @click="generateRadarChart">生成/刷新雷达图</button>
+                                <button class="btn btn-secondary" @click="exportRadarChart">导出图表</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div v-if="competitorAnalysis.games.length > 0" class="action-buttons" style="margin-top: 24px;">
+                        <button class="btn btn-primary" @click="exportCompetitorAnalysis">导出分析报告</button>
+                        <button class="btn btn-danger" @click="clearCompetitorAnalysis">清空分析</button>
+                    </div>
+
+                    <!-- 空状态 -->
+                    <div v-if="competitorAnalysis.games.length === 0" class="empty-state">
+                        <p>暂无分析游戏</p>
+                        <p style="font-size: 0.9rem;">从上方案例库选择游戏，或手动添加游戏开始分析</p>
+                    </div>
+                </div>
+                
+                <!-- 用户画像模块 -->
+                <div v-if="activeTab === 'persona'" class="module-container">
+                    <h2>用户画像</h2>
+
+                    <!-- 模板选择卡片 -->
+                    <div class="card collapsible-card" :class="{ collapsed: collapsedCards['personaTemplates'] }">
+                        <div class="card-header" @click="toggleCard('personaTemplates')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>快速开始（点击{{ collapsedCards['personaTemplates'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['personaTemplates']" style="padding-top: 16px;">
+                            <p style="color: var(--text-secondary); margin-bottom: 12px;">选择模板快速开始：</p>
+                            <div class="template-grid">
+                                <div v-for="t in personaTemplates" :key="t.name" class="template-card" @click="loadPersonaTemplate(t)">
+                                    <h4>{{ t.name }}</h4>
+                                    <p>{{ t.description }}</p>
+                                </div>
+                            </div>
+                            <button class="btn btn-success" style="margin-top: 12px;" @click="playerTypeTestVisible = true">🎯 玩家类型测试</button>
+                        </div>
+                    </div>
+
+                    <!-- 玩家类型测试弹窗 -->
+                    <div v-if="playerTypeTestVisible" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 1000; display: flex; align-items: center; justify-content: center;">
+                        <div style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;">
+                            <h3 style="margin-top: 0;">🎯 玩家类型测试</h3>
+                            <p style="color: var(--text-secondary); margin-bottom: 16px;">回答以下问题，系统将自动判定您的玩家类型：</p>
+                            <div v-for="(q, index) in playerTypeQuestions" :key="q.id" style="margin-bottom: 16px; padding: 12px; background: var(--bg); border-radius: 8px;">
+                                <p style="margin: 0 0 8px 0; font-weight: 500;">{{ index + 1 }}. {{ q.question }}</p>
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                    <label v-for="(opt, optIndex) in q.options" :key="optIndex" style="display: flex; align-items: center; gap: 4px; cursor: pointer; padding: 8px 12px; border-radius: 6px; background: white; border: 1px solid var(--border);">
+                                        <input type="radio" :name="'pt-' + index" :value="optIndex" v-model="playerTypeAnswers[index]" />
+                                        {{ opt.text }}
+                                    </label>
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 12px; justify-content: flex-end;">
+                                <button class="btn btn-secondary" @click="playerTypeTestVisible = false">取消</button>
+                                <button class="btn btn-primary" @click="calculatePlayerType">确认测试</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 基本信息卡片 -->
+                    <div class="card collapsible-card" :class="{ collapsed: collapsedCards['personaBasic'] }">
+                        <div class="card-header" @click="toggleCard('personaBasic')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>基本信息（点击{{ collapsedCards['personaBasic'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['personaBasic']" style="padding-top: 16px;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>画像名称</label>
+                                    <input v-model="userPersona.name" placeholder="如：大学生休闲玩家" />
+                                </div>
+                                <div class="form-group">
+                                    <label>年龄段</label>
+                                    <select v-model="userPersona.basicInfo.ageRange">
+                                        <option value="">请选择</option>
+                                        <option value="18岁以下">18岁以下</option>
+                                        <option value="18-24岁">18-24岁</option>
+                                        <option value="25-34岁">25-34岁</option>
+                                        <option value="35岁以上">35岁以上</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>性别</label>
+                                    <select v-model="userPersona.basicInfo.gender">
+                                        <option value="">请选择</option>
+                                        <option value="男">男</option>
+                                        <option value="女">女</option>
+                                        <option value="不限">不限</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>设备偏好</label>
+                                    <select v-model="userPersona.basicInfo.device">
+                                        <option value="">请选择</option>
+                                        <option value="手机">手机</option>
+                                        <option value="PC">PC</option>
+                                        <option value="主机">主机</option>
+                                        <option value="多设备">多设备</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>职业</label>
+                                    <input v-model="userPersona.basicInfo.occupation" placeholder="如：学生、程序员" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 游戏习惯卡片 -->
+                    <div class="card collapsible-card" :class="{ collapsed: collapsedCards['personaHabit'] }">
+                        <div class="card-header" @click="toggleCard('personaHabit')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>游戏习惯（点击{{ collapsedCards['personaHabit'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['personaHabit']" style="padding-top: 16px;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>游戏类型偏好</label>
+                                    <input v-model="userPersona.gameHabit.gameType" placeholder="如：RPG、MOBA、休闲" />
+                                </div>
+                                <div class="form-group">
+                                    <label>每日游戏时长</label>
+                                    <select v-model="userPersona.gameHabit.dailyHours">
+                                        <option value="">请选择</option>
+                                        <option value="少于30分钟">少于30分钟</option>
+                                        <option value="30分钟-1小时">30分钟-1小时</option>
+                                        <option value="1-2小时">1-2小时</option>
+                                        <option value="2-3小时">2-3小时</option>
+                                        <option value="3小时以上">3小时以上</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>周活跃频率</label>
+                                    <select v-model="userPersona.gameHabit.weeklyFreq">
+                                        <option value="">请选择</option>
+                                        <option value="每天">每天</option>
+                                        <option value="4-5次">4-5次</option>
+                                        <option value="2-3次">2-3次</option>
+                                        <option value="偶尔">偶尔</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>主要游戏时段</label>
+                                    <select v-model="userPersona.gameHabit.playTime">
+                                        <option value="">请选择</option>
+                                        <option value="清晨">清晨</option>
+                                        <option value="午间">午间</option>
+                                        <option value="下午">下午</option>
+                                        <option value="晚间">晚间</option>
+                                        <option value="深夜">深夜</option>
+                                        <option value="不固定">不固定</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 消费行为卡片 -->
+                    <div class="card collapsible-card" :class="{ collapsed: collapsedCards['personaSpending'] }">
+                        <div class="card-header" @click="toggleCard('personaSpending')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>消费行为（点击{{ collapsedCards['personaSpending'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['personaSpending']" style="padding-top: 16px;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>付费意愿</label>
+                                    <select v-model="userPersona.spending.willingness">
+                                        <option value="">请选择</option>
+                                        <option value="从不付费">从不付费</option>
+                                        <option value="低">低</option>
+                                        <option value="中">中</option>
+                                        <option value="高">高</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>付费模式偏好</label>
+                                    <input v-model="userPersona.spending.model" placeholder="如：免费+内购、买断制" />
+                                </div>
+                                <div class="form-group">
+                                    <label>单次消费上限(元)</label>
+                                    <input v-model="userPersona.spending.maxAmount" placeholder="如：50、100" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 动机与痛点卡片 -->
+                    <div class="card collapsible-card" :class="{ collapsed: collapsedCards['personaMotivation'] }">
+                        <div class="card-header" @click="toggleCard('personaMotivation')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>动机与痛点（点击{{ collapsedCards['personaMotivation'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['personaMotivation']" style="padding-top: 16px;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>游戏动机</label>
+                                    <input v-model="userPersona.motivation.drivers" placeholder="如：放松、社交、挑战" />
+                                </div>
+                                <div class="form-group">
+                                    <label>核心需求</label>
+                                    <input v-model="userPersona.motivation.needs" placeholder="如：简单上手、深度内容" />
+                                </div>
+                                <div class="form-group">
+                                    <label>阻碍因素</label>
+                                    <input v-model="userPersona.motivation.barriers" placeholder="如：没时间、外挂" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 目标设定卡片 -->
+                    <div class="card collapsible-card" :class="{ collapsed: collapsedCards['personaGoals'] }">
+                        <div class="card-header" @click="toggleCard('personaGoals')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>目标设定（点击{{ collapsedCards['personaGoals'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['personaGoals']" style="padding-top: 16px;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>短期目标</label>
+                                    <input v-model="userPersona.goals.shortTerm" placeholder="如：完成每日任务" />
+                                </div>
+                                <div class="form-group">
+                                    <label>长期目标</label>
+                                    <input v-model="userPersona.goals.longTerm" placeholder="如：达到最高段位" />
+                                </div>
+                                <div class="form-group">
+                                    <label>游戏内成就</label>
+                                    <input v-model="userPersona.goals.achievements" placeholder="如：全收集、王者" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 玩家类型展示卡片 -->
+                    <div v-if="userPersona.playerType.type" class="card" style="background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); border: 2px solid var(--primary);">
+                        <h3 style="margin: 0;">🎯 玩家类型：{{ userPersona.playerType.type }}</h3>
+                        <p style="color: var(--text-secondary); margin: 8px 0 0 0;">
+                            基于巴特尔玩家类型理论，您的用户属于 {{ userPersona.playerType.type }} 玩家。
+                            <span v-if="userPersona.playerType.type === '成就型'">偏好完成挑战、收集成就。</span>
+                            <span v-if="userPersona.playerType.type === '探索型'">偏好探索世界、研究机制。</span>
+                            <span v-if="userPersona.playerType.type === '社交型'">偏好结交朋友、团队协作。</span>
+                            <span v-if="userPersona.playerType.type === '杀手型'">偏好击败对手、竞争排名。</span>
+                        </p>
+                    </div>
+
+                    <!-- 访谈问题调整卡片 -->
+                    <div class="card collapsible-card" :class="{ collapsed: collapsedCards['interviewQuestions'] }">
+                        <div class="card-header" @click="toggleCard('interviewQuestions')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>访谈问题顺序调整（点击{{ collapsedCards['interviewQuestions'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['interviewQuestions']" style="padding-top: 16px;">
+                            <p style="color: var(--text-secondary); margin-bottom: 12px;">拖拽问题卡片可调整访谈顺序：</p>
+                            <div class="question-list">
+                                <div 
+                                    v-for="(q, index) in interviewQuestions" 
+                                    :key="q.id"
+                                    draggable="true"
+                                    @dragstart="onDragStart(index)"
+                                    @dragover="onDragOver($event, index)"
+                                    @dragend="onDragEnd"
+                                    style="display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg); border-radius: 8px; margin-bottom: 8px; cursor: grab; border: 1px solid var(--border);"
+                                >
+                                    <span style="color: var(--text-secondary); cursor: grab;">☰</span>
+                                    <span style="background: var(--primary); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">{{ q.type.toUpperCase() }}</span>
+                                    <span style="font-weight: 500;">{{ index + 1 }}.</span>
+                                    <input v-model="q.content" style="flex: 1; border: none; background: transparent;" placeholder="问题内容" />
+                                    <button @click="removeInterviewQuestion(index)" style="color: var(--danger); background: none; border: none; cursor: pointer; font-size: 1.2rem;">×</button>
+                                </div>
+                            </div>
+                            <button class="btn btn-secondary" style="margin-top: 12px;" @click="addCustomQuestion">+ 添加自定义问题</button>
+                        </div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="action-buttons" style="margin-top: 24px;">
+                        <button class="btn btn-primary" @click="savePersona">保存到本地</button>
+                        <button class="btn btn-secondary" @click="exportPersona">导出JSON</button>
+                        <button class="btn btn-secondary" @click="triggerImportPersona">导入JSON</button>
+                        <input type="file" ref="personaImportInput" @change="importPersona" style="display:none" accept=".json" />
+                    </div>
+                </div>
+                
+                <!-- 用户访谈模块 -->
+                <div v-if="activeTab === 'interview'" class="module-container">
+                    <h2>用户访谈</h2>
+
+                    <!-- 访谈提纲卡片 -->
+                    <div class="card collapsible-card" :class="{ collapsed: collapsedCards['interviewGuides'] }">
+                        <div class="card-header" @click="toggleCard('interviewGuides')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>访谈提纲（点击{{ collapsedCards['interviewGuides'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['interviewGuides']" style="padding-top: 16px;">
+                            <p style="color: var(--text-secondary); margin-bottom: 12px;">选择提纲模板快速开始：</p>
+                            <div class="template-grid" style="margin-bottom: 16px;">
+                                <div 
+                                    v-for="t in interviewGuideTemplates" 
+                                    :key="t.name" 
+                                    class="template-card" 
+                                    @click="loadGuideTemplate(t)"
+                                >
+                                    <h4>{{ t.name }}</h4>
+                                    <p>{{ t.questions.length }} 个问题</p>
+                                </div>
+                            </div>
+                            
+                            <div v-if="interviewSession.guides.length > 0">
+                                <h4 style="margin: 16px 0 12px 0;">当前提纲</h4>
+                                <div v-for="(q, index) in interviewSession.guides" :key="q.id" style="display: flex; gap: 12px; margin-bottom: 12px; align-items: center; padding: 12px; background: var(--bg); border-radius: 8px;">
+                                    <span :style="{ background: getQuestionTypeColor(q.type), color: 'white', padding: '4px 10px', borderRadius: '4px', fontSize: '0.8rem', whiteSpace: 'nowrap' }">{{ guideTypes.find(t => t.value === q.type)?.label || q.type }}</span>
+                                    <input v-model="q.content" style="flex: 1; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px;" placeholder="问题内容" />
+                                    <select v-model="q.type" style="padding: 8px; border-radius: 6px; border: 1px solid var(--border);">
+                                        <option v-for="t in guideTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
+                                    </select>
+                                    <button class="btn btn-danger" style="padding: 6px 10px;" @click="removeGuideQuestion(index)">删除</button>
+                                </div>
+                                <button class="btn btn-secondary" @click="addGuideQuestion" style="margin-top: 8px;">+ 添加问题</button>
+                            </div>
+                            <div v-else class="empty-state">
+                                <p>暂无提纲，点击上方模板开始</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 访谈记录卡片 -->
+                    <div class="card collapsible-card" :class="{ collapsed: collapsedCards['interviewRecords'] }">
+                        <div class="card-header" @click="toggleCard('interviewRecords')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>访谈记录（点击{{ collapsedCards['interviewRecords'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['interviewRecords']" style="padding-top: 16px;">
+                            <div v-if="interviewSession.records.length === 0" class="empty-state">
+                                <p>暂无访谈记录</p>
+                            </div>
+                            <div v-for="(r, index) in interviewSession.records" :key="r.id" style="border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                                <div style="display: flex; gap: 12px; margin-bottom: 12px;">
+                                    <input v-model="r.subject" placeholder="访谈对象" style="flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: 6px;" />
+                                    <input v-model="r.date" type="date" style="width: 150px; padding: 8px; border: 1px solid var(--border); border-radius: 6px;" />
+                                </div>
+                                <textarea v-model="r.notes" rows="4" placeholder="记录访谈要点..." style="width: 100%; margin-bottom: 12px; padding: 8px; border: 1px solid var(--border); border-radius: 6px; resize: vertical;"></textarea>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <select v-model="r.insightType" style="padding: 8px; border-radius: 6px; border: 1px solid var(--border);">
+                                        <option v-for="c in insightCategories" :key="c.id" :value="c.id">{{ c.name }}</option>
+                                    </select>
+                                    <button class="btn btn-danger" style="padding: 6px 10px;" @click="removeInterviewRecord(index)">删除记录</button>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" @click="addInterviewRecord">+ 新建访谈记录</button>
+                        </div>
+                    </div>
+
+                    <!-- 洞察提炼卡片 -->
+                    <div class="card collapsible-card" :class="{ collapsed: collapsedCards['interviewInsights'] }">
+                        <div class="card-header" @click="toggleCard('interviewInsights')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>洞察提炼（点击{{ collapsedCards['interviewInsights'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['interviewInsights']" style="padding-top: 16px;">
+                            <button class="btn btn-success" @click="extractInsights" :disabled="interviewSession.records.length === 0" style="margin-bottom: 16px;">
+                                从访谈记录提取洞察
+                            </button>
+                            <div v-if="interviewSession.insights.length === 0" class="empty-state">
+                                <p>暂无洞察</p>
+                                <p style="font-size: 0.9rem; color: var(--text-secondary);">点击上方按钮从访谈记录提取洞察</p>
+                            </div>
+                            <div v-for="(i, index) in interviewSession.insights" :key="i.id" :style="{ borderLeft: '4px solid ' + i.color, paddingLeft: '12px', marginBottom: '16px', padding: '12px', background: 'var(--bg)', borderRadius: '8px' }">
+                                <div style="display: flex; justify-content: space-between; align-items: start;">
+                                    <span :style="{ color: i.color, fontWeight: 'bold' }">{{ i.category }}</span>
+                                    <button @click="removeInsight(index)" style="background: none; border: none; cursor: pointer; color: var(--danger);">×</button>
+                                </div>
+                                <p style="margin: 8px 0 4px 0; line-height: 1.6;">{{ i.content }}</p>
+                                <p v-if="i.source" style="margin: 0; font-size: 0.8rem; color: var(--text-secondary);">来源：{{ i.source }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="action-buttons" style="margin-top: 24px;">
+                        <button class="btn btn-primary" @click="exportInterview">导出访谈报告</button>
+                        <button class="btn btn-danger" @click="clearInterview">清空</button>
+                    </div>
+                </div>
+                
+                <!-- 问卷设计模块 -->
+                <div v-if="activeTab === 'questionnaire'" class="module-container">
+                    <h2>问卷设计</h2>
+
+                    <!-- 基本信息卡片 -->
+                    <div class="card collapsible-card" :class="{ collapsed: collapsedCards['qBasic'] }">
+                        <div class="card-header" @click="toggleCard('qBasic')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>问卷基本信息（点击{{ collapsedCards['qBasic'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['qBasic']" style="padding-top: 16px;">
+                            <div class="form-group">
+                                <label>问卷标题</label>
+                                <input v-model="questionnaire.title" placeholder="请输入问卷标题" />
+                            </div>
+                            <div class="form-group">
+                                <label>问卷说明</label>
+                                <textarea v-model="questionnaire.description" rows="2" placeholder="感谢您参与本次调研，您的意见对我们非常重要..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 模板选择卡片 -->
+                    <div class="card collapsible-card" :class="{ collapsed: collapsedCards['qTemplates'] }">
+                        <div class="card-header" @click="toggleCard('qTemplates')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>问卷模板（点击{{ collapsedCards['qTemplates'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['qTemplates']" style="padding-top: 16px;">
+                            <p style="color: var(--text-secondary); margin-bottom: 12px;">选择模板快速创建问卷：</p>
+                            <div class="template-grid">
+                                <div
+                                    v-for="t in questionnaireTemplates"
+                                    :key="t.name"
+                                    class="template-card"
+                                    @click="loadQuestionnaireTemplate(t)"
+                                >
+                                    <h4>{{ t.name }}</h4>
+                                    <p>{{ t.description }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 题目列表卡片 -->
+                    <div class="card collapsible-card" :class="{ collapsed: collapsedCards['qList'] }">
+                        <div class="card-header" @click="toggleCard('qList')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>题目列表（{{ questionnaire.questions.length }} 题）（点击{{ collapsedCards['qList'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['qList']" style="padding-top: 16px;">
+                            <div v-if="questionnaire.questions.length === 0" class="empty-state">
+                                <p>还没有添加题目</p>
+                                <p>点击下方"添加题目"开始设计问卷</p>
+                            </div>
+                            <div
+                                v-for="(q, index) in questionnaire.questions"
+                                :key="q.id"
+                                draggable="true"
+                                @dragstart="onQuestionDragStart(index)"
+                                @dragover="onQuestionDragOver($event, index)"
+                                @dragend="onQuestionDragEnd"
+                                style="border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px; cursor: grab;"
+                            >
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                    <span style="font-weight: bold;">Q{{ index + 1 }} <span style="cursor: grab; color: var(--text-secondary);">☰</span></span>
+                                    <div style="display: flex; gap: 8px; align-items: center;">
+                                        <span :style="{ background: 'var(--primary)', color: 'white', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem' }">{{ getQuestionTypeLabel(q.type) }}</span>
+                                        <span :style="{ background: '#f3f4f6', color: 'var(--text-secondary)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem' }">{{ getDimensionLabel(q.dimension) }}</span>
+                                        <span v-if="q.required" style="color: var(--danger);">* 必答</span>
+                                        <button class="btn btn-danger" style="padding: 4px 8px;" @click="removeQuestion(index)">删除</button>
+                                    </div>
+                                </div>
+                                <div class="form-group" style="margin-bottom: 12px;">
+                                    <input v-model="q.content" placeholder="题目内容" style="font-size: 1rem;" />
+                                </div>
+                                <div v-if="q.type === 'single' || q.type === 'multiple'" style="margin-top: 12px;">
+                                    <div v-for="(opt, optIndex) in q.options" :key="optIndex" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                                        <span style="color: var(--text-secondary);">{{ optIndex + 1 }}.</span>
+                                        <input v-model="q.options[optIndex]" style="flex: 1;" placeholder="选项" />
+                                    </div>
+                                </div>
+                                <div v-if="q.type === 'scale'" style="margin-top: 12px;">
+                                    <div style="display: flex; gap: 12px; align-items: center;">
+                                        <input v-model="q.scaleMinLabel" placeholder="低分说明" style="width: 120px;" />
+                                        <span>到</span>
+                                        <input v-model="q.scaleMaxLabel" placeholder="高分说明" style="width: 120px;" />
+                                        <span>({{ q.scaleMin }} - {{ q.scaleMax }})</span>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 12px; display: flex; gap: 8px;">
+                                    <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" @click="moveQuestion(index, -1)" :disabled="index === 0">↑ 上移</button>
+                                    <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 0.8rem;" @click="moveQuestion(index, 1)" :disabled="index === questionnaire.questions.length - 1">下移 ↓</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 添加题目卡片 -->
+                    <div class="card collapsible-card" :class="{ collapsed: collapsedCards['qAdd'] }">
+                        <div class="card-header" @click="toggleCard('qAdd')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>添加题目（点击{{ collapsedCards['qAdd'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['qAdd']" style="padding-top: 16px;">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>题目类型</label>
+                                    <select v-model="newQuestion.type" style="padding: 10px;">
+                                        <option v-for="t in questionTypes" :key="t.value" :value="t.value">{{ t.label }}</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>维度分类</label>
+                                    <select v-model="newQuestion.dimension" style="padding: 10px;">
+                                        <option v-for="d in questionDimensions" :key="d.value" :value="d.value">{{ d.label }}</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>题目内容</label>
+                                    <input v-model="newQuestion.content" placeholder="请输入题目内容" @keyup.enter="addQuestion" />
+                                </div>
+                            </div>
+
+                            <div v-if="newQuestion.type === 'single' || newQuestion.type === 'multiple'" style="margin-top: 16px;">
+                                <label>选项（至少2个）</label>
+                                <div v-for="(opt, index) in newQuestion.options" :key="index" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+                                    <span style="color: var(--text-secondary);">{{ index + 1 }}.</span>
+                                    <input v-model="newQuestion.options[index]" style="flex: 1;" placeholder="选项" />
+                                    <button v-if="newQuestion.options.length > 2" @click="removeOption(index)" style="color: var(--danger); background: none; border: none; cursor: pointer; font-size: 1.2rem;">×</button>
+                                </div>
+                                <button class="btn btn-secondary" style="padding: 6px 12px; margin-top: 8px;" @click="addOption">+ 添加选项</button>
+                            </div>
+
+                            <div v-if="newQuestion.type === 'scale'" style="margin-top: 16px;">
+                                <label>量表设置</label>
+                                <div class="form-row" style="margin-top: 8px;">
+                                    <div class="form-group">
+                                        <label>最小值</label>
+                                        <input type="number" v-model.number="newQuestion.scaleMin" min="1" max="5" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>最大值</label>
+                                        <input type="number" v-model.number="newQuestion.scaleMax" min="2" max="10" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>低分说明</label>
+                                        <input v-model="newQuestion.scaleMinLabel" placeholder="非常不同意" />
+                                    </div>
+                                    <div class="form-group">
+                                        <label>高分说明</label>
+                                        <input v-model="newQuestion.scaleMaxLabel" placeholder="非常同意" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 16px;">
+                                <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                                    <input type="checkbox" v-model="newQuestion.required" />
+                                    设为必答题
+                                </label>
+                            </div>
+                            <button class="btn btn-primary" style="margin-top: 16px;" @click="addQuestion">添加到问卷</button>
+                        </div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="action-buttons" style="margin-top: 24px;">
+                        <button class="btn btn-primary" @click="exportToExcel">导出Excel</button>
+                        <button class="btn btn-secondary" @click="saveQuestionnaire">保存到本地</button>
+                    </div>
+                </div>
+                
+                <!-- 数据分析模块 -->
+                <div v-show="activeTab === 'analysis'" class="module-container">
+                    <h2>数据分析与画像完善</h2>
+
+                    <!-- 数据上传卡片 -->
+                    <div class="card collapsible-card" :class="{ collapsed: collapsedCards['dataUpload'] }">
+                        <div class="card-header" @click="toggleCard('dataUpload')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>数据上传（点击{{ collapsedCards['dataUpload'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['dataUpload']" style="padding-top: 16px;">
+                            <p style="color: var(--text-secondary); margin-bottom: 12px;">支持 Excel (.xlsx, .xls) 或 CSV 格式的问卷数据</p>
+                            <input type="file" @change="handleDataUpload" accept=".xlsx,.xls,.csv" style="padding: 10px; border: 1px solid var(--border); border-radius: 6px; width: 100%;" />
+                            <p v-if="isDataUploaded" style="margin-top: 12px; color: var(--success); font-weight: 500;">
+                                ✓ 已上传 {{ uploadedData.length }} 条数据，包含 {{ statisticsKeys.length }} 个字段
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 数据统计卡片 -->
+                    <div v-if="isDataUploaded" class="card collapsible-card" :class="{ collapsed: collapsedCards['dataStats'] }">
+                        <div class="card-header" @click="toggleCard('dataStats')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>数据统计（点击{{ collapsedCards['dataStats'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['dataStats']" style="padding-top: 16px;">
+                            <!-- 统计概览 -->
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 16px; margin-bottom: 24px;">
+                                <div style="background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); padding: 20px; border-radius: 8px; text-align: center;">
+                                    <div style="font-size: 2rem; font-weight: bold; color: var(--primary);">{{ uploadedData.length }}</div>
+                                    <div style="color: var(--text-secondary);">样本数</div>
+                                </div>
+                                <div style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); padding: 20px; border-radius: 8px; text-align: center;">
+                                    <div style="font-size: 2rem; font-weight: bold; color: var(--success);">{{ statisticsKeys.length }}</div>
+                                    <div style="color: var(--text-secondary);">题目数</div>
+                                </div>
+                            </div>
+
+                            <!-- 逐题统计 -->
+                            <div v-for="(stats, key) in statistics" :key="key" style="border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin-bottom: 16px;">
+                                <h4 style="margin: 0 0 16px 0; color: var(--primary);">{{ key }}</h4>
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <div v-for="(item, idx) in stats" :key="idx" style="display: flex; align-items: center; gap: 12px;">
+                                        <div style="min-width: 100px; max-width: 150px; flex-shrink: 0; font-size: 0.9rem;">{{ item.label }}</div>
+                                        <div style="flex: 1; background: #e5e7eb; border-radius: 4px; overflow: hidden; height: 24px;">
+                                            <div :style="{ width: Math.max(item.percentage, 5) + '%', background: getBarColor(idx), padding: '4px 8px', color: 'white', fontSize: '0.8rem', minWidth: '40px', transition: 'width 0.3s' }">
+                                                {{ item.percentage }}%
+                                            </div>
+                                        </div>
+                                        <div style="min-width: 60px; text-align: right; color: var(--text-secondary);">{{ item.count }}人</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 生成画像卡片 -->
+                    <div v-if="isDataUploaded" class="card collapsible-card" :class="{ collapsed: collapsedCards['genPersona'] }">
+                        <div class="card-header" @click="toggleCard('genPersona')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>生成精细画像（点击{{ collapsedCards['genPersona'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['genPersona']" style="padding-top: 16px;">
+                            <button class="btn btn-primary" @click="generateRefinedPersona" :disabled="refinedPersona !== null">
+                                📊 基于数据分析生成画像
+                            </button>
+                            <div v-if="refinedPersona" style="margin-top: 20px;">
+                                <div style="background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); padding: 20px; border-radius: 8px; border: 2px solid var(--warning);">
+                                    <h3 style="margin: 0 0 12px 0;">📋 {{ refinedPersona.name }}</h3>
+                                    <p style="margin: 0; color: var(--text-secondary);">
+                                        生成时间：{{ refinedPersona.generatedAt }} |
+                                        样本量：{{ refinedPersona.sampleSize }} 条 |
+                                        置信度：<strong style="color: var(--success);">{{ refinedPersona.confidence }}</strong>
+                                    </p>
+                                </div>
+
+                                <div style="margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px;">
+                                    <div v-if="Object.keys(refinedPersona.basicInfo).length" style="background: var(--bg); padding: 16px; border-radius: 8px;">
+                                        <h4 style="margin: 0 0 8px 0; color: var(--primary);">📌 基本信息</h4>
+                                        <div v-for="(value, key) in refinedPersona.basicInfo" :key="key" style="margin-bottom: 4px;">
+                                            <strong>{{ key }}：</strong> {{ value }}
+                                        </div>
+                                    </div>
+                                    <div v-if="Object.keys(refinedPersona.gameHabit).length" style="background: var(--bg); padding: 16px; border-radius: 8px;">
+                                        <h4 style="margin: 0 0 8px 0; color: var(--success);">🎮 游戏习惯</h4>
+                                        <div v-for="(value, key) in refinedPersona.gameHabit" :key="key" style="margin-bottom: 4px;">
+                                            <strong>{{ key }}：</strong> {{ value }}
+                                        </div>
+                                    </div>
+                                    <div v-if="Object.keys(refinedPersona.spending).length" style="background: var(--bg); padding: 16px; border-radius: 8px;">
+                                        <h4 style="margin: 0 0 8px 0; color: var(--warning);">💰 消费行为</h4>
+                                        <div v-for="(value, key) in refinedPersona.spending" :key="key" style="margin-bottom: 4px;">
+                                            <strong>{{ key }}：</strong> {{ value }}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button class="btn btn-secondary" style="margin-top: 16px;" @click="exportRefinedPersona">导出画像报告</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div v-if="isDataUploaded" class="action-buttons" style="margin-top: 24px;">
+                        <button class="btn btn-secondary" @click="clearAnalysis">清除数据</button>
+                    </div>
+
+                    <!-- 空状态 -->
+                    <div v-if="!isDataUploaded" class="empty-state">
+                        <p>暂无上传数据</p>
+                        <p style="font-size: 0.9rem; color: var(--text-secondary);">上传 Excel 或 CSV 格式的问卷数据开始分析</p>
+                    </div>
+                </div>
+                
+                <!-- 可视化中心模块 -->
+                <div v-if="activeTab === 'visualization'" class="module-container">
+                    <h2>可视化中心</h2>
+
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn btn-primary" @click="refreshAllCharts">🔄 刷新所有图表</button>
+                    </div>
+
+                    <!-- 竞品分析雷达图 -->
+                    <div class="card chart-card" style="margin-bottom: 20px;">
+                        <h3>📊 竞品分析雷达图</h3>
+                        <div id="vizRadarChart" style="width: 100%; height: 400px;"></div>
+                        <p v-if="competitorAnalysis.games.length === 0" style="color: var(--text-secondary); text-align: center; padding: 40px;">
+                            请先在「竞品分析」中添加游戏数据
+                        </p>
+                    </div>
+
+                    <!-- 用户画像分布 -->
+                    <div class="card chart-card" style="margin-bottom: 20px;">
+                        <h3>👥 用户画像分布</h3>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 12px;">基于已上传的问卷数据生成</p>
+                        <div id="vizPersonaPie" style="width: 100%; height: 300px;"></div>
+                        <p v-if="!isDataUploaded" style="color: var(--text-secondary); text-align: center; padding: 40px;">
+                            请先在「数据分析」中上传问卷数据
+                        </p>
+                    </div>
+
+                    <!-- AARRR 漏斗图 -->
+                    <div class="card chart-card" style="margin-bottom: 20px;">
+                        <h3>🔮 用户旅程漏斗 (AARRR)</h3>
+                        <div style="margin-bottom: 12px;">
+                            <div v-for="(item, index) in aarrrData" :key="index" style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
+                                <span style="min-width: 150px;">{{ item.name }}</span>
+                                <input type="range" min="0" max="100" :value="item.value" @input="editAarrrItem(index, $event.target.value)" style="flex: 1;" />
+                                <input type="number" min="0" max="100" :value="item.value" @input="editAarrrItem(index, $event.target.value)" style="width: 60px; padding: 4px;" />
+                                <span>%</span>
+                            </div>
+                        </div>
+                        <div id="vizFunnelChart" style="width: 100%; height: 350px;"></div>
+                    </div>
+
+                    <!-- 词云图 -->
+                    <div class="card chart-card" style="margin-bottom: 20px;">
+                        <h3>☁️ 关键词词云</h3>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 12px;">基于问卷开放式回答生成</p>
+                        <div id="vizWordCloud" style="width: 100%; height: 350px;"></div>
+                        <p v-if="!isDataUploaded" style="color: var(--text-secondary); text-align: center; padding: 40px;">
+                            请先在「数据分析」中上传包含文本的数据
+                        </p>
+                    </div>
+
+                    <!-- 趋势折线图 -->
+                    <div class="card chart-card" style="margin-bottom: 20px;">
+                        <h3>📈 数据趋势变化</h3>
+                        <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 12px;">示例数据，可根据实际调研结果调整</p>
+                        <div id="vizLineChart" style="width: 100%; height: 300px;"></div>
+                    </div>
+                </div>
+                
+                <!-- 报告生成模块 -->
+                <div v-if="activeTab === 'report'" class="module-container">
+                    <h2>报告生成</h2>
+
+                    <!-- 报告类型选择 -->
+                    <div class="card collapsible-card" :class="{ collapsed: collapsedCards['reportType'] }">
+                        <div class="card-header" @click="toggleCard('reportType')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>报告类型（点击{{ collapsedCards['reportType'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['reportType']" style="padding-top: 16px;">
+                            <div class="form-group">
+                                <label>选择报告类型</label>
+                                <select v-model="reportConfig.type" style="padding: 10px;">
+                                    <option value="comprehensive">综合研究报告（推荐）</option>
+                                    <option value="competitor">竞品分析报告</option>
+                                    <option value="persona">用户画像报告</option>
+                                </select>
+                            </div>
+                            <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 8px;">
+                                <span v-if="reportConfig.type === 'comprehensive'">包含所有分析模块的综合报告</span>
+                                <span v-if="reportConfig.type === 'competitor'">专注于竞品分析和对比</span>
+                                <span v-if="reportConfig.type === 'persona'">专注于用户画像和洞察</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 章节选择 -->
+                    <div class="card collapsible-card" :class="{ collapsed: collapsedCards['reportSections'] }">
+                        <div class="card-header" @click="toggleCard('reportSections')" style="cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
+                            <h3>选择章节（点击{{ collapsedCards['reportSections'] ? '展开' : '收起' }}）</h3>
+                            <span style="color: var(--text-secondary);">▾</span>
+                        </div>
+                        <div class="card-body" v-show="!collapsedCards['reportSections']" style="padding-top: 16px;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px;">
+                                <label v-for="(enabled, key) in reportConfig.sections" :key="key" style="display: flex; align-items: center; gap: 8px; padding: 12px; background: var(--bg); border-radius: 8px; cursor: pointer;">
+                                    <input type="checkbox" v-model="reportConfig.sections[key]" />
+                                    <span>{{ key === 'summary' ? '📋 执行摘要' :
+                                           key === 'competitor' ? '🎮 竞品分析' :
+                                           key === 'persona' ? '👤 用户画像' :
+                                           key === 'interview' ? '💬 用户访谈洞察' :
+                                           key === 'questionnaire' ? '📝 问卷分析' :
+                                           key === 'visualization' ? '📊 数据可视化' :
+                                           key === 'conclusion' ? '💡 结论与建议' : key }}</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 报告预览 -->
+                    <div class="card" style="background: var(--bg); margin-top: 20px;">
+                        <h3>📄 报告预览</h3>
+                        <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid var(--border);">
+                            <h4 style="margin: 0 0 16px 0; color: var(--primary);">游戏用户研究报告</h4>
+                            <div style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 16px;">
+                                生成时间：{{ new Date().toLocaleString('zh-CN') }}
+                            </div>
+                            <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                                <p style="margin: 4px 0;">✓ 执行摘要</p>
+                                <p style="margin: 4px 0;" v-if="reportConfig.sections.competitor">✓ 竞品分析 ({{ competitorAnalysis.games.length }} 款游戏)</p>
+                                <p style="margin: 4px 0;" v-if="reportConfig.sections.persona">✓ 用户画像 ({{ userPersona.name || '未命名' }})</p>
+                                <p style="margin: 4px 0;" v-if="reportConfig.sections.interview">✓ 用户访谈洞察 ({{ interviewSession.insights.length }} 条)</p>
+                                <p style="margin: 4px 0;" v-if="reportConfig.sections.questionnaire">✓ 问卷设计 ({{ questionnaire.questions.length }} 题)</p>
+                                <p style="margin: 4px 0;" v-if="reportConfig.sections.conclusion">✓ 结论与建议</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 生成按钮 -->
+                    <div style="margin-top: 24px; text-align: center;">
+                        <button class="btn btn-primary" style="padding: 12px 40px; font-size: 1rem;" @click="generateWordReport">
+                            📥 生成 Word 报告
+                        </button>
+                        <p style="color: var(--text-secondary); font-size: 0.85rem; margin-top: 8px;">
+                            报告将下载为 .docx 格式，可使用 Microsoft Word 或 WPS 打开
+                        </p>
+                    </div>
+                </div>
+            </main>
+        </div>
+        
+        <!-- Toast Message -->
+        <div v-if="toastMessage" class="toast">
+            {{ toastMessage }}
+        </div>
+    </div>
+    
+    <script>
+        const { createApp, ref, computed, watch } = Vue;
+        
+        createApp({
+            setup() {
+                // 应用标题
+                const appTitle = ref('游戏设计用户研究工具 v2.0');
+                
+                // Tab 导航
+                const activeTab = ref('competitor');
+                const tabs = [
+                    { id: 'competitor', name: '竞品分析' },
+                    { id: 'persona', name: '用户画像' },
+                    { id: 'interview', name: '用户访谈' },
+                    { id: 'questionnaire', name: '问卷设计' },
+                    { id: 'analysis', name: '数据分析' },
+                    { id: 'visualization', name: '可视化中心' },
+                    { id: 'report', name: '报告生成' }
+                ];
+                
+                // 卡片折叠状态
+                const collapsedCards = ref({});
+                const toggleCard = (cardId) => {
+                    collapsedCards.value[cardId] = !collapsedCards.value[cardId];
+                };
+                
+                // Toast 消息
+                const toastMessage = ref('');
+                const showToast = (msg, type = 'default') => {
+                    toastMessage.value = msg;
+                    setTimeout(() => { toastMessage.value = ''; }, 3000);
+                };
+                
+                // 空的数据结构占位（后续阶段填充）
+                const interviewSession = ref({ guides: [], records: [], insights: [] });
+
+                // 数据分析
+                const uploadedData = ref([]);
+                const isDataUploaded = ref(false);
+                const statistics = ref({});
+                const statisticsKeys = ref([]);
+                const refinedPersona = ref(null);
+
+                // 图表颜色
+                const chartColors = ['#4F46E5', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#06B6D4', '#EC4899', '#14B8A6'];
+
+                // 获取条形颜色
+                const getBarColor = (index) => {
+                    return chartColors[index % chartColors.length];
+                };
+
+                // 解析CSV
+                const parseCSV = (text) => {
+                    const lines = text.split('\n');
+                    if (lines.length < 2) return [];
+                    const headers = lines[0].split(',').map(h => h.trim());
+                    const data = [];
+                    for (let i = 1; i < lines.length; i++) {
+                        if (!lines[i].trim()) continue;
+                        const values = lines[i].split(',');
+                        const row = {};
+                        headers.forEach((h, j) => {
+                            row[h] = values[j]?.trim() || '';
+                        });
+                        data.push(row);
+                    }
+                    return data;
+                };
+
+                // 数据上传处理
+                const handleDataUpload = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            let data;
+                            if (file.name.endsWith('.csv')) {
+                                data = parseCSV(event.target.result);
+                            } else {
+                                const workbook = XLSX.read(event.target.result, { type: 'binary' });
+                                const sheetName = workbook.SheetNames[0];
+                                data = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName]);
+                            }
+                            uploadedData.value = data;
+                            isDataUploaded.value = true;
+                            calculateStatistics(data);
+                            showToast('数据上传成功，共 ' + data.length + ' 条');
+                        } catch (err) {
+                            showToast('上传失败：' + err.message);
+                        }
+                    };
+                    reader.readAsBinaryString(file);
+                };
+
+                // 计算统计数据
+                const calculateStatistics = (data) => {
+                    if (data.length === 0) return;
+                    const keys = Object.keys(data[0]);
+                    statisticsKeys.value = keys;
+                    const stats = {};
+
+                    keys.forEach(key => {
+                        const counts = {};
+                        data.forEach(row => {
+                            const val = row[key];
+                            if (!val) return;
+                            const options = String(val).split(/[;；,，]/);
+                            options.forEach(opt => {
+                                const trimmed = opt.trim();
+                                if (trimmed) {
+                                    counts[trimmed] = (counts[trimmed] || 0) + 1;
+                                }
+                            });
+                        });
+
+                        const total = Object.values(counts).reduce((a, b) => a + b, 0);
+                        stats[key] = Object.entries(counts).map(([label, count]) => ({
+                            label,
+                            count,
+                            percentage: total > 0 ? Math.round(count / total * 100) : 0
+                        })).sort((a, b) => b.count - a.count);
+                    });
+
+                    statistics.value = stats;
+                };
+
+                // 生成精细画像
+                const generateRefinedPersona = () => {
+                    const persona = {
+                        name: '基于数据的精细画像',
+                        generatedAt: new Date().toLocaleString(),
+                        basicInfo: {},
+                        gameHabit: {},
+                        spending: {},
+                        confidence: uploadedData.value.length >= 30 ? '高' : (uploadedData.value.length >= 10 ? '中' : '低'),
+                        sampleSize: uploadedData.value.length
+                    };
+
+                    Object.entries(statistics.value).forEach(([key, values]) => {
+                        if (values.length > 0) {
+                            const top = values[0];
+                            const keywords = key.toLowerCase();
+
+                            if (keywords.includes('年龄') || keywords.includes('age')) {
+                                persona.basicInfo['年龄'] = top.label;
+                            } else if (keywords.includes('性别') || keywords.includes('gender')) {
+                                persona.basicInfo['性别'] = top.label;
+                            } else if (keywords.includes('设备') || keywords.includes('device')) {
+                                persona.basicInfo['设备'] = top.label;
+                            } else if (keywords.includes('职业') || keywords.includes('occupation')) {
+                                persona.basicInfo['职业'] = top.label;
+                            } else if (keywords.includes('时长') || keywords.includes('hours')) {
+                                persona.gameHabit['游戏时长'] = top.label;
+                            } else if (keywords.includes('频率') || keywords.includes('frequency')) {
+                                persona.gameHabit['活跃频率'] = top.label;
+                            } else if (keywords.includes('类型') || keywords.includes('type')) {
+                                persona.gameHabit['游戏类型'] = top.label;
+                            } else if (keywords.includes('付费') || keywords.includes('spending')) {
+                                persona.spending['付费意愿'] = top.label;
+                            } else if (keywords.includes('动机') || keywords.includes('motivation')) {
+                                persona.gameHabit['游戏动机'] = top.label;
+                            }
+                        }
+                    });
+
+                    refinedPersona.value = persona;
+                    showToast('画像生成成功');
+                };
+
+                // 导出精细画像
+                const exportRefinedPersona = () => {
+                    if (!refinedPersona.value) {
+                        showToast('请先生成画像');
+                        return;
+                    }
+                    const dataStr = JSON.stringify(refinedPersona.value, null, 2);
+                    const blob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = '精细画像.json';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    showToast('导出成功');
+                };
+
+                // 清除数据
+                const clearAnalysis = () => {
+                    uploadedData.value = [];
+                    isDataUploaded.value = false;
+                    statistics.value = {};
+                    statisticsKeys.value = [];
+                    refinedPersona.value = null;
+                };
+
+                // 问题类型定义（带颜色）
+                const guideTypes = [
+                    { value: 'opening', label: '开场', color: '#10B981' },
+                    { value: 'behavior', label: '行为', color: '#3B82F6' },
+                    { value: 'attitude', label: '态度', color: '#8B5CF6' },
+                    { value: 'barrier', label: '障碍', color: '#EF4444' },
+                    { value: 'closing', label: '收尾', color: '#6B7280' },
+                    { value: 'need', label: '需求', color: '#F59E0B' }
+                ];
+
+                // 洞察分类定义
+                const insightCategories = [
+                    { id: 'need', name: '用户需求', color: '#10B981' },
+                    { id: 'behavior', name: '行为模式', color: '#3B82F6' },
+                    { id: 'pain', name: '痛点', color: '#EF4444' },
+                    { id: 'opportunity', name: '机会点', color: '#F59E0B' }
+                ];
+
+                // 访谈提纲模板
+                const interviewGuideTemplates = ref([
+                    {
+                        name: '游戏习惯访谈',
+                        questions: [
+                            { type: 'opening', content: '请介绍一下您平时玩游戏的习惯？' },
+                            { type: 'behavior', content: '您通常在什么时间段玩游戏？每次玩多久？' },
+                            { type: 'behavior', content: '您玩过哪些类型的游戏？最喜欢哪类？' },
+                            { type: 'attitude', content: '您选择一款游戏时最看重什么？' },
+                            { type: 'barrier', content: '什么因素会让您放弃一款游戏？' },
+                            { type: 'closing', content: '您对目前玩游戏的体验满意吗？有什么建议？' }
+                        ]
+                    },
+                    {
+                        name: '付费行为访谈',
+                        questions: [
+                            { type: 'opening', content: '您有过在游戏中付费的经历吗？' },
+                            { type: 'behavior', content: '您通常为什么付费？' },
+                            { type: 'attitude', content: '什么情况下您会愿意付费？' },
+                            { type: 'barrier', content: '什么情况下您会停止付费？' },
+                            { type: 'closing', content: '您对游戏付费模式有什么看法？' }
+                        ]
+                    },
+                    {
+                        name: '玩家体验访谈',
+                        questions: [
+                            { type: 'opening', content: '您最近在玩什么游戏？为什么选择它？' },
+                            { type: 'behavior', content: '您在游戏中主要的成就是什么？' },
+                            { type: 'attitude', content: '您最享受游戏中的什么体验？' },
+                            { type: 'barrier', content: '游戏中有什么让您感到挫败的地方？' },
+                            { type: 'need', content: '您希望游戏增加什么功能？' },
+                            { type: 'closing', content: '您会给朋友推荐这款游戏吗？为什么？' }
+                        ]
+                    },
+                    {
+                        name: '用户画像访谈',
+                        questions: [
+                            { type: 'opening', content: '请介绍一下您自己？' },
+                            { type: 'behavior', content: '您平时玩游戏的时间是如何安排的？' },
+                            { type: 'attitude', content: '什么样的游戏内容最吸引您？' },
+                            { type: 'barrier', content: '您在游戏中遇到过什么问题？' },
+                            { type: 'need', content: '您对理想中的游戏有什么期待？' },
+                            { type: 'closing', content: '如果让您给游戏开发者提建议，您会说什么？' }
+                        ]
+                    }
+                ]);
+
+                // 获取问题类型颜色
+                const getQuestionTypeColor = (type) => {
+                    const found = guideTypes.find(t => t.value === type);
+                    return found ? found.color : '#6B7280';
+                };
+
+                // 加载访谈提纲模板
+                const loadGuideTemplate = (t) => {
+                    interviewSession.value.guides = JSON.parse(JSON.stringify(t.questions));
+                    showToast('已加载提纲模板：' + t.name);
+                };
+
+                // 添加访谈问题
+                const addGuideQuestion = () => {
+                    interviewSession.value.guides.push({
+                        id: Date.now(),
+                        type: 'opening',
+                        content: ''
+                    });
+                };
+
+                // 删除访谈问题
+                const removeGuideQuestion = (index) => {
+                    interviewSession.value.guides.splice(index, 1);
+                };
+
+                // 添加访谈记录
+                const addInterviewRecord = () => {
+                    interviewSession.value.records.push({
+                        id: Date.now(),
+                        subject: '',
+                        date: new Date().toISOString().split('T')[0],
+                        notes: '',
+                        insightType: 'need'
+                    });
+                };
+
+                // 删除访谈记录
+                const removeInterviewRecord = (index) => {
+                    interviewSession.value.records.splice(index, 1);
+                };
+
+                // 提取洞察
+                const extractInsights = () => {
+                    interviewSession.value.records.forEach(r => {
+                        if (r.notes && r.subject) {
+                            const cat = insightCategories.find(c => c.id === r.insightType);
+                            interviewSession.value.insights.push({
+                                id: Date.now(),
+                                category: cat ? cat.name : r.insightType,
+                                color: cat ? cat.color : '#6B7280',
+                                content: r.notes.substring(0, 200) + (r.notes.length > 200 ? '...' : ''),
+                                source: r.subject
+                            });
+                        }
+                    });
+                    if (interviewSession.value.insights.length === 0) {
+                        showToast('请先填写访谈记录');
+                    } else {
+                        showToast('已提取 ' + interviewSession.value.insights.length + ' 条洞察');
+                    }
+                };
+
+                // 删除洞察
+                const removeInsight = (index) => {
+                    interviewSession.value.insights.splice(index, 1);
+                };
+
+                // 清除访谈
+                const clearInterview = () => {
+                    interviewSession.value = { guides: [], records: [], insights: [] };
+                };
+
+                // 导出访谈报告
+                const exportInterview = () => {
+                    const dataStr = JSON.stringify(interviewSession.value, null, 2);
+                    const blob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = '访谈记录.json';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    showToast('导出成功');
+                };
+                
+                // 问卷数据
+                const questionnaire = ref({
+                    title: '游戏用户调研问卷',
+                    description: '感谢您参与本次调研，您的意见对我们非常重要。',
+                    questions: []
+                });
+
+                // 题目类型
+                const questionTypes = [
+                    { value: 'single', label: '单选题' },
+                    { value: 'multiple', label: '多选题' },
+                    { value: 'scale', label: '量表题' },
+                    { value: 'text', label: '填空题' }
+                ];
+
+                // 问题维度分类
+                const questionDimensions = [
+                    { value: 'cognitive', label: '认知维度' },
+                    { value: 'behavior', label: '行为维度' },
+                    { value: 'attitude', label: '态度维度' },
+                    { value: 'motivation', label: '动机维度' },
+                    { value: 'pain', label: '痛点维度' }
+                ];
+
+                // 新题目表单
+                const newQuestion = ref({
+                    type: 'single',
+                    content: '',
+                    required: true,
+                    options: ['', ''],
+                    scaleMin: 1,
+                    scaleMax: 5,
+                    scaleMinLabel: '非常不同意',
+                    scaleMaxLabel: '非常同意',
+                    dimension: 'behavior'
+                });
+
+                // 问卷模板
+                const questionnaireTemplates = ref([
+                    {
+                        name: '玩家类型测试问卷',
+                        description: '基于巴特尔模型的玩家类型判定',
+                        questions: [
+                            { type: 'single', content: '你更享受完成游戏中的挑战，还是探索游戏世界？', options: ['完成挑战', '探索世界'], dimension: 'behavior', required: true },
+                            { type: 'single', content: '你热衷于收集游戏中的成就和奖励吗？', options: ['是', '否'], dimension: 'behavior', required: true },
+                            { type: 'single', content: '你更喜欢在游戏中结交朋友还是独自游玩？', options: ['结交朋友', '独自游玩'], dimension: 'social', required: true },
+                            { type: 'single', content: '你在PVP中更看重击败对手还是团队协作？', options: ['击败对手', '团队协作'], dimension: 'motivation', required: true },
+                            { type: 'single', content: '你会主动研究游戏机制并分享攻略吗？', options: ['会', '不会'], dimension: 'cognitive', required: true },
+                            { type: 'single', content: '你最常用的游戏设备是什么？', options: ['手机', 'PC', '主机', '多设备'], dimension: 'behavior', required: true },
+                            { type: 'single', content: '你每天花在游戏上的时间大约是多少？', options: ['少于30分钟', '30分钟-1小时', '1-2小时', '2-3小时', '3小时以上'], dimension: 'behavior', required: true },
+                            { type: 'single', content: '你在游戏中的消费水平属于？', options: ['从不付费', '偶尔小额', '每月固定', '高消费'], dimension: 'motivation', required: true }
+                        ]
+                    },
+                    {
+                        name: '游戏体验满意度问卷',
+                        description: '基于游戏体验要素的满意度调查',
+                        questions: [
+                            { type: 'scale', content: '游戏给我带来了预感中的惊喜', scaleMin: 1, scaleMax: 5, scaleMinLabel: '非常不同意', scaleMaxLabel: '非常同意', dimension: 'attitude', required: true },
+                            { type: 'scale', content: '完成游戏目标让我感到自豪', scaleMin: 1, scaleMax: 5, scaleMinLabel: '非常不同意', scaleMaxLabel: '非常同意', dimension: 'attitude', required: true },
+                            { type: 'scale', content: '游戏中我享受战胜逆境的成就感', scaleMin: 1, scaleMax: 5, scaleMinLabel: '非常不同意', scaleMaxLabel: '非常同意', dimension: 'attitude', required: true },
+                            { type: 'scale', content: '游戏中的社交互动让我感到快乐', scaleMin: 1, scaleMax: 5, scaleMinLabel: '非常不同意', scaleMaxLabel: '非常同意', dimension: 'social', required: true },
+                            { type: 'scale', content: '我愿意向朋友推荐这款游戏', scaleMin: 1, scaleMax: 5, scaleMinLabel: '非常不同意', scaleMaxLabel: '非常同意', dimension: 'behavior', required: true },
+                            { type: 'multiple', content: '以下哪些体验让你感到快乐？（多选）', options: ['收到游戏礼物', '幽默的对话', '意外的惊喜', '展示成就', '社交互动', '挑战成功'], dimension: 'attitude', required: false }
+                        ]
+                    },
+                    {
+                        name: '用户认知阶段问卷',
+                        description: '基于皮亚杰认知发展理论的测试',
+                        questions: [
+                            { type: 'single', content: '面对新游戏时，你会？', options: ['先看教程慢慢摸索', '自己尝试探索', '查看攻略视频', '直接请教他人'], dimension: 'cognitive', required: true },
+                            { type: 'scale', content: '我能够理解游戏中的复杂系统', scaleMin: 1, scaleMax: 5, scaleMinLabel: '非常不同意', scaleMaxLabel: '非常同意', dimension: 'cognitive', required: true },
+                            { type: 'scale', content: '游戏的学习曲线适中，我可以逐步掌握', scaleMin: 1, scaleMax: 5, scaleMinLabel: '非常不同意', scaleMaxLabel: '非常同意', dimension: 'cognitive', required: true },
+                            { type: 'single', content: '当你遇到游戏中的难题时，你通常会？', options: ['反复尝试直到成功', '查看攻略', '询问他人', '放弃'], dimension: 'cognitive', required: true }
+                        ]
+                    },
+                    {
+                        name: '游戏动机分析问卷',
+                        description: '了解用户玩游戏的动机',
+                        questions: [
+                            { type: 'multiple', content: '您玩游戏的动机是？（多选）', options: ['杀时间', '看剧情', '挑战自我', '社交交友', '收集养成', '竞技排名'], dimension: 'motivation', required: true },
+                            { type: 'single', content: '您每天平均游戏时长？', options: ['少于30分钟', '30分钟-1小时', '1-2小时', '2-3小时', '3小时以上'], dimension: 'behavior', required: true },
+                            { type: 'scale', content: '游戏是我生活中重要的娱乐方式', scaleMin: 1, scaleMax: 5, scaleMinLabel: '非常不同意', scaleMaxLabel: '非常同意', dimension: 'attitude', required: true },
+                            { type: 'single', content: '您更喜欢哪种类型的游戏？', options: ['竞技对战', '角色扮演', '休闲益智', '策略经营', '模拟养成'], dimension: 'motivation', required: true }
+                        ]
+                    },
+                    {
+                        name: '痛点分析问卷',
+                        description: '发现用户在游戏中的困扰',
+                        questions: [
+                            { type: 'multiple', content: '以下哪些问题让您困扰？（多选）', options: ['太肝', '太氪', '晕3D', '匹配体验差', '遇到外挂', '社交不足', '玩法单一', '更新缓慢'], dimension: 'pain', required: false },
+                            { type: 'scale', content: '游戏的学习成本让我感到困难', scaleMin: 1, scaleMax: 5, scaleMinLabel: '非常不同意', scaleMaxLabel: '非常同意', dimension: 'pain', required: true },
+                            { type: 'scale', content: '游戏中的付费内容影响了我的体验', scaleMin: 1, scaleMax: 5, scaleMinLabel: '非常不同意', scaleMaxLabel: '非常同意', dimension: 'pain', required: true },
+                            { type: 'scale', content: '游戏中的匹配系统让我感到不公平', scaleMin: 1, scaleMax: 5, scaleMinLabel: '非常不同意', scaleMaxLabel: '非常同意', dimension: 'pain', required: true },
+                            { type: 'text', content: '请描述您在游戏中遇到的最大问题：', dimension: 'pain', required: false }
+                        ]
+                    },
+                    {
+                        name: '综合用户研究问卷',
+                        description: '整合多个维度的综合调研',
+                        questions: [
+                            { type: 'single', content: '您的年龄段？', options: ['18岁以下', '18-24岁', '25-34岁', '35-44岁', '45岁以上'], dimension: 'cognitive', required: true },
+                            { type: 'single', content: '您主要的游戏设备？', options: ['手机', 'PC', '主机', '多设备'], dimension: 'behavior', required: true },
+                            { type: 'scale', content: '我对游戏付费持开放态度', scaleMin: 1, scaleMax: 5, scaleMinLabel: '非常不同意', scaleMaxLabel: '非常同意', dimension: 'attitude', required: true },
+                            { type: 'single', content: '您通常通过什么渠道了解新游戏？', options: ['朋友推荐', '社交媒体', '游戏平台', '广告', '直播/视频'], dimension: 'behavior', required: true },
+                            { type: 'scale', content: '游戏中的社交功能是我体验的重要组成部分', scaleMin: 1, scaleMax: 5, scaleMinLabel: '非常不同意', scaleMaxLabel: '非常同意', dimension: 'social', required: true }
+                        ]
+                    }
+                ]);
+
+                const loadQuestionnaireTemplate = (t) => {
+                    questionnaire.value.questions = JSON.parse(JSON.stringify(t.questions));
+                    showToast('已加载模板：' + t.name);
+                };
+
+                const getQuestionTypeLabel = (type) => {
+                    const found = questionTypes.find(t => t.value === type);
+                    return found ? found.label : type;
+                };
+
+                const getDimensionLabel = (dim) => {
+                    const found = questionDimensions.find(d => d.value === dim);
+                    return found ? found.label : dim;
+                };
+
+                const addQuestion = () => {
+                    if (!newQuestion.value.content.trim()) {
+                        showToast('请输入题目内容');
+                        return;
+                    }
+                    if ((newQuestion.value.type === 'single' || newQuestion.value.type === 'multiple') && newQuestion.value.options.filter(o => o.trim()).length < 2) {
+                        showToast('请至少添加2个选项');
+                        return;
+                    }
+                    const q = {
+                        id: Date.now(),
+                        type: newQuestion.value.type,
+                        content: newQuestion.value.content,
+                        required: newQuestion.value.required,
+                        dimension: newQuestion.value.dimension
+                    };
+                    if (q.type === 'single' || q.type === 'multiple') {
+                        q.options = newQuestion.value.options.filter(o => o.trim());
+                    } else if (q.type === 'scale') {
+                        q.scaleMin = newQuestion.value.scaleMin;
+                        q.scaleMax = newQuestion.value.scaleMax;
+                        q.scaleMinLabel = newQuestion.value.scaleMinLabel;
+                        q.scaleMaxLabel = newQuestion.value.scaleMaxLabel;
+                    }
+                    questionnaire.value.questions.push(q);
+                    newQuestion.value = {
+                        type: 'single',
+                        content: '',
+                        required: true,
+                        options: ['', ''],
+                        scaleMin: 1,
+                        scaleMax: 5,
+                        scaleMinLabel: '非常不同意',
+                        scaleMaxLabel: '非常同意',
+                        dimension: 'behavior'
+                    };
+                    saveQuestionnaire();
+                };
+
+                const removeQuestion = (index) => {
+                    questionnaire.value.questions.splice(index, 1);
+                    saveQuestionnaire();
+                };
+
+                const removeOption = (index) => {
+                    newQuestion.value.options.splice(index, 1);
+                };
+
+                const addOption = () => {
+                    newQuestion.value.options.push('');
+                };
+
+                const moveQuestion = (index, direction) => {
+                    const newIndex = index + direction;
+                    if (newIndex < 0 || newIndex >= questionnaire.value.questions.length) return;
+                    const questions = questionnaire.value.questions;
+                    [questions[index], questions[newIndex]] = [questions[newIndex], questions[index]];
+                    saveQuestionnaire();
+                };
+
+                // 拖拽排序
+                let questionnaireDragIndex = null;
+                const onQuestionDragStart = (index) => {
+                    questionnaireDragIndex = index;
+                };
+                const onQuestionDragOver = (event, index) => {
+                    event.preventDefault();
+                    if (questionnaireDragIndex !== null && questionnaireDragIndex !== index) {
+                        const item = questionnaire.value.questions.splice(questionnaireDragIndex, 1)[0];
+                        questionnaire.value.questions.splice(index, 0, item);
+                        questionnaireDragIndex = index;
+                    }
+                };
+                const onQuestionDragEnd = () => {
+                    questionnaireDragIndex = null;
+                    saveQuestionnaire();
+                };
+
+                const exportToExcel = () => {
+                    if (questionnaire.value.questions.length === 0) {
+                        showToast('请先添加题目');
+                        return;
+                    }
+                    const wb = XLSX.utils.book_new();
+                    const wsData = [
+                        ['序号', '题目内容', '题型', '维度', '选项', '必答']
+                    ];
+                    questionnaire.value.questions.forEach((q, i) => {
+                        let options = '';
+                        if (q.options) {
+                            options = q.options.join('; ');
+                        } else if (q.type === 'scale') {
+                            options = `${q.scaleMin}(${q.scaleMinLabel}) - ${q.scaleMax}(${q.scaleMaxLabel})`;
+                        }
+                        wsData.push([
+                            i + 1,
+                            q.content,
+                            getQuestionTypeLabel(q.type),
+                            getDimensionLabel(q.dimension),
+                            options,
+                            q.required ? '是' : '否'
+                        ]);
+                    });
+                    const ws = XLSX.utils.aoa_to_sheet(wsData);
+                    XLSX.utils.book_append_sheet(wb, ws, '问卷题目');
+                    XLSX.writeFile(wb, '问卷设计.xlsx');
+                    showToast('导出成功');
+                };
+
+                const saveQuestionnaire = () => {
+                    localStorage.setItem('questionnaire', JSON.stringify(questionnaire.value));
+                };
+
+                const loadQuestionnaire = () => {
+                    const saved = localStorage.getItem('questionnaire');
+                    if (saved) questionnaire.value = JSON.parse(saved);
+                };
+                
+                // 用户画像数据
+                const userPersona = ref({
+                    name: '',
+                    basicInfo: { ageRange: '', gender: '', device: '', occupation: '' },
+                    gameHabit: { gameType: '', dailyHours: '', weeklyFreq: '', playTime: '' },
+                    spending: { willingness: '', model: '', maxAmount: '' },
+                    motivation: { drivers: '', needs: '', barriers: '' },
+                    goals: { shortTerm: '', longTerm: '', achievements: '' },
+                    playerType: { type: '', score: { achievement: 0, explorer: 0, social: 0, killer: 0 } },
+                    interviewQuestions: []
+                });
+
+                // 玩家类型测试
+                const playerTypeQuestions = ref([
+                    { id: 1, question: '你更享受完成游戏中的挑战，还是探索游戏世界？', options: [{ text: '完成挑战', score: { achievement: 2, explorer: 0 } }, { text: '探索世界', score: { achievement: 0, explorer: 2 } }] },
+                    { id: 2, question: '你热衷于收集游戏中的成就和奖励吗？', options: [{ text: '是', score: { achievement: 2 } }, { text: '否', score: {} }] },
+                    { id: 3, question: '你更喜欢在游戏中结交朋友还是独自游玩？', options: [{ text: '结交朋友', score: { social: 2 } }, { text: '独自游玩', score: { explorer: 1 } }] },
+                    { id: 4, question: '你在PVP中更看重击败对手还是团队协作？', options: [{ text: '击败对手', score: { killer: 2 } }, { text: '团队协作', score: { social: 2 } }] },
+                    { id: 5, question: '你会主动研究游戏机制并分享攻略吗？', options: [{ text: '会', score: { explorer: 2, achievement: 1 } }, { text: '不会', score: {} }] }
+                ]);
+
+                const playerTypeAnswers = ref([]);
+                const playerTypeTestVisible = ref(false);
+
+                const calculatePlayerType = () => {
+                    const scores = { achievement: 0, explorer: 0, social: 0, killer: 0 };
+                    playerTypeAnswers.value.forEach((answer, index) => {
+                        if (playerTypeQuestions.value[index] && playerTypeQuestions.value[index].options[answer]) {
+                            const option = playerTypeQuestions.value[index].options[answer];
+                            Object.keys(option.score).forEach(type => {
+                                scores[type] += option.score[type];
+                            });
+                        }
+                    });
+                    const maxType = Object.entries(scores).reduce((a, b) => b[1] > a[1] ? b : a, [0, 0])[0];
+                    const typeNames = { achievement: '成就型', explorer: '探索型', social: '社交型', killer: '杀手型' };
+                    userPersona.value.playerType.type = typeNames[maxType];
+                    userPersona.value.playerType.score = scores;
+                    playerTypeTestVisible.value = false;
+                    showToast('玩家类型判定完成：' + typeNames[maxType]);
+                };
+
+                // 画像模板
+                const personaTemplates = ref([
+                    {
+                        name: '休闲玩家',
+                        description: '低投入、低付费、时间碎片化',
+                        basicInfo: { ageRange: '18-30', gender: '不限', device: '手机', occupation: '学生/上班族' },
+                        gameHabit: { gameType: '休闲、益智', dailyHours: '0.5-1小时', weeklyFreq: '偶尔', playTime: '睡前/通勤' },
+                        spending: { willingness: '低', model: '免费+小额', maxAmount: '50' },
+                        motivation: { drivers: '放松娱乐', needs: '简单上手', barriers: '没时间' },
+                        goals: { shortTerm: '每日任务', longTerm: '收集成就', achievements: '全收集' }
+                    },
+                    {
+                        name: '硬核玩家',
+                        description: '高投入、高付费、追求挑战',
+                        basicInfo: { ageRange: '18-35', gender: '男偏多', device: 'PC/主机', occupation: '自由职业/学生' },
+                        gameHabit: { gameType: 'RPG、SLG', dailyHours: '2-4小时', weeklyFreq: '每天', playTime: '晚间/深夜' },
+                        spending: { willingness: '高', model: '买断+内购', maxAmount: '500+' },
+                        motivation: { drivers: '挑战、成长', needs: '深度内容', barriers: '重复内容' },
+                        goals: { shortTerm: '提升实力', longTerm: '完成挑战', achievements: '全成就' }
+                    },
+                    {
+                        name: '社交型玩家',
+                        description: '中投入、社交驱动、喜欢组队',
+                        basicInfo: { ageRange: '18-25', gender: '不限', device: '手机', occupation: '学生' },
+                        gameHabit: { gameType: '派对、竞技', dailyHours: '1-2小时', weeklyFreq: '每天', playTime: '晚间' },
+                        spending: { willingness: '中', model: '皮肤+社交', maxAmount: '200' },
+                        motivation: { drivers: '社交、组队', needs: '好友互动', barriers: '单机感' },
+                        goals: { shortTerm: '组队游戏', longTerm: '公会活动', achievements: '公会排名' }
+                    },
+                    {
+                        name: '竞技型玩家',
+                        description: '高投入、追求排名、付费较少',
+                        basicInfo: { ageRange: '16-30', gender: '男偏多', device: 'PC', occupation: '学生/自由职业' },
+                        gameHabit: { gameType: 'MOBA、FPS', dailyHours: '2-3小时', weeklyFreq: '每天', playTime: '晚间' },
+                        spending: { willingness: '低', model: '免费', maxAmount: '100' },
+                        motivation: { drivers: '排名、技术', needs: '公平竞技', barriers: '外挂' },
+                        goals: { shortTerm: '排位提升', longTerm: '达到最高段位', achievements: '冠军' }
+                    }
+                ]);
+
+                const loadPersonaTemplate = (t) => {
+                    userPersona.value = JSON.parse(JSON.stringify(t));
+                    showToast('已加载模板：' + t.name);
+                };
+
+                // 访谈问题
+                const interviewQuestions = ref([
+                    { id: 1, content: '你是什么样的人？', type: 'who', order: 1 },
+                    { id: 2, content: '你在玩什么类型的游戏？', type: 'what', order: 2 },
+                    { id: 3, content: '为什么你会打开游戏？', type: 'why', order: 3 },
+                    { id: 4, content: '你在同类游戏中遇到过什么问题？', type: 'pain', order: 4 },
+                    { id: 5, content: '你对游戏有什么期待？', type: 'need', order: 5 }
+                ]);
+
+                let draggedIndex = null;
+
+                const onDragStart = (index) => {
+                    draggedIndex = index;
+                };
+
+                const onDragOver = (event, index) => {
+                    event.preventDefault();
+                    if (draggedIndex !== null && draggedIndex !== index) {
+                        const item = interviewQuestions.value.splice(draggedIndex, 1)[0];
+                        interviewQuestions.value.splice(index, 0, item);
+                        draggedIndex = index;
+                        updateQuestionOrders();
+                    }
+                };
+
+                const onDragEnd = () => {
+                    draggedIndex = null;
+                };
+
+                const updateQuestionOrders = () => {
+                    interviewQuestions.value.forEach((q, i) => q.order = i + 1);
+                };
+
+                const removeInterviewQuestion = (index) => {
+                    interviewQuestions.value.splice(index, 1);
+                    updateQuestionOrders();
+                };
+
+                const addCustomQuestion = () => {
+                    interviewQuestions.value.push({
+                        id: Date.now(),
+                        content: '',
+                        type: 'custom',
+                        order: interviewQuestions.value.length + 1
+                    });
+                };
+
+                const savePersona = () => {
+                    localStorage.setItem('userPersona', JSON.stringify(userPersona.value));
+                    showToast('已保存到本地');
+                };
+
+                const exportPersona = () => {
+                    const dataStr = JSON.stringify(userPersona.value, null, 2);
+                    const blob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = '用户画像.json';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    showToast('导出成功');
+                };
+
+                const personaImportInput = ref(null);
+                const triggerImportPersona = () => {
+                    personaImportInput.value.click();
+                };
+                const importPersona = (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        try {
+                            const data = JSON.parse(event.target.result);
+                            userPersona.value = data;
+                            showToast('导入成功');
+                        } catch (err) {
+                            showToast('导入失败：文件格式错误');
+                        }
+                    };
+                    reader.readAsText(file);
+                };
+
+                // 竞品分析数据
+                const competitorAnalysis = ref({
+                    games: [],
+                    dimensions: [
+                        { id: 'gameplay', name: '玩法机制', subItems: ['核心玩法', '上手难度', '系统深度'] },
+                        { id: 'loop', name: '核心循环', subItems: ['日常循环', '长期目标'] },
+                        { id: 'monetization', name: '付费设计', subItems: ['付费模式', '付费深度'] },
+                        { id: 'art', name: '美术风格', subItems: ['画风', 'UI设计'] },
+                        { id: 'social', name: '社交系统', subItems: ['好友系统', '公会系统'] },
+                        { id: 'narrative', name: '叙事风格', subItems: ['剧情深度', '世界观'] },
+                        { id: 'playerType', name: '玩家类型分布', subItems: ['成就型', '探索型', '社交型', '杀手型'] }
+                    ]
+                });
+
+                // 案例库数据
+                const caseStudies = ref([
+                    { name: '原神', type: '二次元/卡牌', scores: { gameplay: 5, loop: 4, monetization: 2, art: 5, social: 3, narrative: 5, playerType: 4 }, description: { gameplay: '开放世界动作RPG，优秀的探索与剧情体验', advantages: '画面精美、剧情优秀、角色丰富', disadvantages: '抽卡概率低、养成周期长', suggestions: '增加角色互动内容、优化抽卡体验' } },
+                    { name: '王者荣耀', type: 'MOBA/竞技', scores: { gameplay: 5, loop: 5, monetization: 3, art: 4, social: 5, narrative: 2, playerType: 5 }, description: { gameplay: '5v5 MOBA竞技，深度战术配合', advantages: '竞技体验好、社交功能强、赛事完善', disadvantages: '匹配机制问题、皮肤价格高', suggestions: '优化匹配算法、降低皮肤价格' } },
+                    { name: '蛋仔派对', type: '休闲/派对', scores: { gameplay: 4, loop: 3, monetization: 3, art: 4, social: 5, narrative: 2, playerType: 3 }, description: { gameplay: '休闲派对游戏，简单有趣', advantages: '上手简单、社交有趣、UGC丰富', disadvantages: '深度不足、后期内容消耗快', suggestions: '增加UGC创作工具、丰富赛季内容' } },
+                    { name: '明日方舟', type: '二次元/卡牌', scores: { gameplay: 4, loop: 4, monetization: 2, art: 5, social: 3, narrative: 4, playerType: 3 }, description: { gameplay: '塔防策略卡牌，策略性强', advantages: '策略性强、画风独特、剧情优秀', disadvantages: '养成周期长、后期重复内容多', suggestions: '加速养成节奏、增加肉鸽模式' } },
+                    { name: '万国觉醒', type: 'SLG/策略', scores: { gameplay: 4, loop: 5, monetization: 4, art: 3, social: 4, narrative: 3, playerType: 4 }, description: { gameplay: '即时策略SLG，大地图战斗', advantages: '联盟系统完善、战斗体验好', disadvantages: '大R碾压、小R体验差', suggestions: '优化付费平衡、增加联盟扶持' } },
+                    { name: 'CSGO', type: '射击/动作', scores: { gameplay: 5, loop: 4, monetization: 2, art: 4, social: 4, narrative: 1, playerType: 5 }, description: { gameplay: '硬核射击竞技，精准枪战', advantages: '竞技平衡性好、皮肤交易系统完善', disadvantages: '新手门槛高、外挂问题', suggestions: '优化新手引导、加强反作弊' } }
+                ]);
+
+                // 新游戏表单
+                const newGameName = ref('');
+                const newGameType = ref('');
+
+                // 添加游戏方法
+                const addGame = () => {
+                    if (!newGameName.value) {
+                        showToast('请输入游戏名称');
+                        return;
+                    }
+                    competitorAnalysis.value.games.push({
+                        id: Date.now(),
+                        name: newGameName.value,
+                        type: newGameType.value,
+                        scores: { gameplay: 3, loop: 3, monetization: 3, art: 3, social: 3, narrative: 3, playerType: 3 },
+                        description: { gameplay: '', advantages: '', disadvantages: '', suggestions: '' }
+                    });
+                    newGameName.value = '';
+                    newGameType.value = '';
+                };
+
+                // 加载案例
+                const loadCase = (c) => {
+                    competitorAnalysis.value.games.push({
+                        id: Date.now(),
+                        name: c.name,
+                        type: c.type,
+                        scores: { ...c.scores },
+                        description: { ...c.description }
+                    });
+                };
+
+                // 删除游戏
+                const removeGame = (id) => {
+                    competitorAnalysis.value.games = competitorAnalysis.value.games.filter(g => g.id !== id);
+                };
+
+                // 清空分析
+                const clearCompetitorAnalysis = () => {
+                    competitorAnalysis.value.games = [];
+                };
+
+                // 生成雷达图
+                const generateRadarChart = () => {
+                    const chart = echarts.init(document.getElementById('competitorRadarChart'));
+                    const option = {
+                        tooltip: { trigger: 'item' },
+                        legend: { data: competitorAnalysis.value.games.map(g => g.name), bottom: 0, textStyle: { fontSize: 11 } },
+                        radar: {
+                            indicator: competitorAnalysis.value.dimensions.map(d => ({ name: d.name, max: 5 })),
+                            shape: 'polygon'
+                        },
+                        series: [{
+                            type: 'radar',
+                            emphasis: { lineStyle: { width: 4 } },
+                            data: competitorAnalysis.value.games.map(game => ({
+                                value: competitorAnalysis.value.dimensions.map(d => game.scores[d.id]),
+                                name: game.name
+                            }))
+                        }]
+                    };
+                    chart.setOption(option);
+                };
+
+                // 导出雷达图
+                const exportRadarChart = () => {
+                    const chart = echarts.getInstanceByDom(document.getElementById('competitorRadarChart'));
+                    if (chart) {
+                        const url = chart.getDataURL({ type: 'png', pixelRatio: 2, backgroundColor: '#fff' });
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = '竞品分析雷达图.png';
+                        a.click();
+                        showToast('雷达图已导出');
+                    }
+                };
+
+                // 导出分析报告
+                const exportCompetitorAnalysis = () => {
+                    const dataStr = JSON.stringify(competitorAnalysis.value, null, 2);
+                    const blob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = '竞品分析.json';
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    showToast('导出成功');
+                };
+                
+                // 导入数据（全局导入）
+                const importData = () => {
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.json';
+                    input.onchange = (e) => {
+                        const file = e.target.files[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            try {
+                                const data = JSON.parse(event.target.result);
+                                if (data.competitorAnalysis) competitorAnalysis.value = data.competitorAnalysis;
+                                if (data.userPersona) userPersona.value = data.userPersona;
+                                if (data.interviewSession) interviewSession.value = data.interviewSession;
+                                if (data.questionnaire) questionnaire.value = data.questionnaire;
+                                if (data.aarrrData) aarrrData.value = data.aarrrData;
+                                showToast('导入成功');
+                            } catch (err) {
+                                showToast('导入失败：文件格式错误');
+                            }
+                        };
+                        reader.readAsText(file);
+                    };
+                    input.click();
+                };
+                
+                // 导出数据（全局导出）
+                const exportData = () => {
+                    const data = {
+                        competitorAnalysis: competitorAnalysis.value,
+                        userPersona: userPersona.value,
+                        interviewSession: interviewSession.value,
+                        questionnaire: questionnaire.value,
+                        aarrrData: aarrrData.value,
+                        exportDate: new Date().toISOString(),
+                        version: '2.0'
+                    };
+                    const dataStr = JSON.stringify(data, null, 2);
+                    const blob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `游戏用户研究数据_${new Date().toISOString().split('T')[0]}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    showToast('导出成功');
+                };
+                
+                // 生成报告
+                const generateReport = () => {
+                    showToast('报告生成功能开发中...');
+                    // TODO: 实现报告生成功能
+                };
+
+                // AARRR 漏斗数据（可自定义）
+                const aarrrData = ref([
+                    { name: '获取 Acquisition', value: 100 },
+                    { name: '激活 Activation', value: 60 },
+                    { name: '留存 Retention', value: 40 },
+                    { name: '收入 Revenue', value: 20 },
+                    { name: '推荐 Referral', value: 10 }
+                ]);
+
+                const editAarrrItem = (index, value) => {
+                    aarrrData.value[index].value = parseInt(value) || 0;
+                };
+
+                // 趋势数据（示例）
+                const trendData = ref({
+                    labels: ['Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024'],
+                    series: [
+                        { name: '用户满意度', data: [72, 75, 78, 82] },
+                        { name: '净推荐值(NPS)', data: [45, 48, 52, 58] },
+                        { name: '留存率', data: [65, 62, 68, 70] }
+                    ]
+                });
+
+                // 初始化可视化图表
+                const initVisualizationCharts = () => {
+                    // 雷达图
+                    if (competitorAnalysis.value.games.length > 0) {
+                        const radarChart = echarts.init(document.getElementById('vizRadarChart'));
+                        radarChart.setOption({
+                            tooltip: { trigger: 'item' },
+                            legend: { data: competitorAnalysis.value.games.map(g => g.name), bottom: 0 },
+                            radar: {
+                                indicator: competitorAnalysis.value.dimensions.map(d => ({ name: d.name, max: 5 }))
+                            },
+                            series: [{
+                                type: 'radar',
+                                data: competitorAnalysis.value.games.map(game => ({
+                                    value: competitorAnalysis.value.dimensions.map(d => game.scores[d.id]),
+                                    name: game.name
+                                }))
+                            }]
+                        });
+                    }
+
+                    // 漏斗图
+                    const funnelChart = echarts.init(document.getElementById('vizFunnelChart'));
+                    funnelChart.setOption({
+                        tooltip: { trigger: 'item' },
+                        legend: { bottom: 0 },
+                        series: [{
+                            type: 'funnel',
+                            left: '10%',
+                            top: 20,
+                            bottom: 60,
+                            width: '80%',
+                            min: 0,
+                            max: 100,
+                            minSize: '0%',
+                            maxSize: '100%',
+                            sort: 'descending',
+                            gap: 2,
+                            label: { show: true, position: 'inside' },
+                            itemStyle: { borderColor: '#fff', borderWidth: 1 },
+                            data: aarrrData.value
+                        }]
+                    });
+
+                    // 折线图
+                    const lineChart = echarts.init(document.getElementById('vizLineChart'));
+                    lineChart.setOption({
+                        tooltip: { trigger: 'axis' },
+                        legend: { data: trendData.value.series.map(s => s.name), bottom: 0 },
+                        xAxis: { type: 'category', data: trendData.value.labels },
+                        yAxis: { type: 'value', min: 0, max: 100 },
+                        series: trendData.value.series.map(s => ({
+                            name: s.name,
+                            type: 'line',
+                            smooth: true,
+                            data: s.data
+                        }))
+                    });
+
+                    // 词云图（如果有待分析文本）
+                    if (uploadedData.value.length > 0) {
+                        const wordCloudChart = echarts.init(document.getElementById('vizWordCloud'));
+                        const words = uploadedData.value.flatMap(row => {
+                            return Object.values(row).filter(v => typeof v === 'string' && v.length > 1).flatMap(v => v.split(/[，,。.、、\s；;]+/));
+                        });
+                        const wordFreq = {};
+                        words.forEach(w => { if (w.length > 1) wordFreq[w] = (wordFreq[w] || 0) + 1; });
+                        const wordCloudData = Object.entries(wordFreq)
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 80)
+                            .map(([name, value]) => ({ name, value }));
+
+                        wordCloudChart.setOption({
+                            tooltip: { show: true },
+                            series: [{
+                                type: 'wordCloud',
+                                shape: 'circle',
+                                left: 'center',
+                                top: 'center',
+                                width: '90%',
+                                height: '90%',
+                                sizeRange: [14, 50],
+                                rotationRange: [-45, 45],
+                                gridSize: 8,
+                                drawOutOfBound: false,
+                                textStyle: {
+                                    fontFamily: 'sans-serif',
+                                    fontWeight: 'bold',
+                                    color: () => `rgb(${Math.random() * 155 + 50}, ${Math.random() * 155 + 50}, ${Math.random() * 155 + 50})`
+                                },
+                                data: wordCloudData
+                            }]
+                        });
+                    }
+
+                    showToast('可视化图表已刷新');
+                };
+
+                // 刷新所有图表
+                const refreshAllCharts = () => {
+                    initVisualizationCharts();
+                };
+
+                // 报告配置
+                const reportConfig = ref({
+                    type: 'comprehensive',
+                    sections: {
+                        summary: true,
+                        competitor: true,
+                        persona: true,
+                        interview: true,
+                        questionnaire: true,
+                        visualization: true,
+                        conclusion: true
+                    },
+                    includeCharts: true
+                });
+
+                // 生成 Word 报告
+                const generateWordReport = async () => {
+                    const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = docx;
+
+                    const sections = [];
+                    const now = new Date().toLocaleString('zh-CN');
+
+                    // 封面
+                    sections.push(
+                        new Paragraph({ text: '游戏用户研究报告', heading: HeadingLevel.TITLE, alignment: AlignmentType.CENTER }),
+                        new Paragraph({ text: `生成时间：${now}`, alignment: AlignmentType.CENTER })
+                    );
+
+                    // 执行摘要
+                    if (reportConfig.value.sections.summary) {
+                        sections.push(
+                            new Paragraph({ text: '执行摘要', heading: HeadingLevel.HEADING_1 }),
+                            new Paragraph({ text: '本报告基于游戏用户研究工具收集的数据，对目标用户群体进行了系统性的分析研究。' }),
+                            new Paragraph({ text: `• 分析样本量：${uploadedData.value.length || '未导入数据'}` }),
+                            new Paragraph({ text: `• 竞品分析：${competitorAnalysis.value.games.length} 款游戏` }),
+                            new Paragraph({ text: `• 问卷题目：${questionnaire.value.questions.length} 道` }),
+                            new Paragraph({ text: `• 访谈记录：${interviewSession.value.records.length} 条` })
+                        );
+                    }
+
+                    // 竞品分析
+                    if (reportConfig.value.sections.competitor && competitorAnalysis.value.games.length > 0) {
+                        sections.push(
+                            new Paragraph({ text: '竞品分析', heading: HeadingLevel.HEADING_1 }),
+                            new Paragraph({ text: `共分析了 ${competitorAnalysis.value.games.length} 款游戏：` })
+                        );
+                        competitorAnalysis.value.games.forEach((game, i) => {
+                            sections.push(
+                                new Paragraph({ text: `${i + 1}. ${game.name} (${game.type})`, heading: HeadingLevel.HEADING_2 }),
+                                new Paragraph({ text: `• 玩法特点：${game.description?.gameplay || '未填写'}` }),
+                                new Paragraph({ text: `• 优势：${game.description?.advantages || '未填写'}` }),
+                                new Paragraph({ text: `• 劣势：${game.description?.disadvantages || '未填写'}` }),
+                                new Paragraph({ text: `• 建议：${game.description?.suggestions || '未填写'}` })
+                            );
+                        });
+                    }
+
+                    // 用户画像
+                    if (reportConfig.value.sections.persona && userPersona.value.name) {
+                        sections.push(
+                            new Paragraph({ text: '用户画像', heading: HeadingLevel.HEADING_1 }),
+                            new Paragraph({ text: `画像名称：${userPersona.value.name}` }),
+                            new Paragraph({ text: `玩家类型：${userPersona.value.playerType?.type || '未测试'}` }),
+                            new Paragraph({ text: `设备偏好：${userPersona.value.basicInfo?.device || '未填写'}` }),
+                            new Paragraph({ text: `游戏习惯：${userPersona.value.gameHabit?.gameType || '未填写'}` }),
+                            new Paragraph({ text: `付费意愿：${userPersona.value.spending?.willingness || '未填写'}` })
+                        );
+                    }
+
+                    // 用户访谈洞察
+                    if (reportConfig.value.sections.interview && interviewSession.value.insights.length > 0) {
+                        sections.push(
+                            new Paragraph({ text: '用户访谈洞察', heading: HeadingLevel.HEADING_1 }),
+                            new Paragraph({ text: `共提取 ${interviewSession.value.insights.length} 条洞察：` })
+                        );
+                        interviewSession.value.insights.forEach((insight, i) => {
+                            sections.push(
+                                new Paragraph({ text: `• [${insight.category}] ${insight.content}`, style: 'ListParagraph' })
+                            );
+                        });
+                    }
+
+                    // 问卷设计
+                    if (reportConfig.value.sections.questionnaire && questionnaire.value.questions.length > 0) {
+                        sections.push(
+                            new Paragraph({ text: '问卷设计', heading: HeadingLevel.HEADING_1 }),
+                            new Paragraph({ text: `问卷标题：${questionnaire.value.title}` }),
+                            new Paragraph({ text: `题目数量：${questionnaire.value.questions.length} 道` })
+                        );
+                    }
+
+                    // 精细画像
+                    if (reportConfig.value.sections.persona && refinedPersona.value) {
+                        sections.push(
+                            new Paragraph({ text: '数据驱动的精细画像', heading: HeadingLevel.HEADING_1 }),
+                            new Paragraph({ text: `置信度：${refinedPersona.value.confidence}` }),
+                            new Paragraph({ text: `样本量：${refinedPersona.value.sampleSize}` })
+                        );
+                    }
+
+                    // 结论与建议
+                    if (reportConfig.value.sections.conclusion) {
+                        sections.push(
+                            new Paragraph({ text: '结论与建议', heading: HeadingLevel.HEADING_1 }),
+                            new Paragraph({ text: '基于以上分析，我们提出以下建议：' }),
+                            new Paragraph({ text: '1. 持续关注用户反馈，优化产品体验' }),
+                            new Paragraph({ text: '2. 根据用户画像精准定位目标用户群体' }),
+                            new Paragraph({ text: '3. 参考竞品分析，制定差异化竞争策略' }),
+                            new Paragraph({ text: '4. 定期进行用户调研，保持对市场变化的敏感度' })
+                        );
+                    }
+
+                    // 创建文档
+                    const doc = new Document({
+                        sections: [{
+                            properties: {},
+                            children: sections
+                        }]
+                    });
+
+                    // 生成并下载
+                    const blob = await Packer.toBlob(doc);
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `游戏用户研究报告_${new Date().toISOString().split('T')[0]}.docx`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+
+                    showToast('报告生成成功');
+                };
+
+                // 本地存储加载
+                const loadAllData = () => {
+                    const savedCompetitor = localStorage.getItem('competitorAnalysis');
+                    if (savedCompetitor) competitorAnalysis.value = JSON.parse(savedCompetitor);
+
+                    const savedPersona = localStorage.getItem('userPersona');
+                    if (savedPersona) userPersona.value = JSON.parse(savedPersona);
+
+                    const savedInterview = localStorage.getItem('interviewSession');
+                    if (savedInterview) interviewSession.value = JSON.parse(savedInterview);
+
+                    const savedQuestionnaire = localStorage.getItem('questionnaire');
+                    if (savedQuestionnaire) questionnaire.value = JSON.parse(savedQuestionnaire);
+
+                    const savedAarrr = localStorage.getItem('aarrrData');
+                    if (savedAarrr) aarrrData.value = JSON.parse(savedAarrr);
+                };
+
+                // 自动保存 watcher
+                watch(competitorAnalysis, (newVal) => {
+                    localStorage.setItem('competitorAnalysis', JSON.stringify(newVal));
+                }, { deep: true });
+
+                watch(userPersona, (newVal) => {
+                    localStorage.setItem('userPersona', JSON.stringify(newVal));
+                }, { deep: true });
+
+                watch(interviewSession, (newVal) => {
+                    localStorage.setItem('interviewSession', JSON.stringify(newVal));
+                }, { deep: true });
+
+                watch(questionnaire, (newVal) => {
+                    localStorage.setItem('questionnaire', JSON.stringify(newVal));
+                }, { deep: true });
+
+                watch(aarrrData, (newVal) => {
+                    localStorage.setItem('aarrrData', JSON.stringify(newVal));
+                }, { deep: true });
+
+                // 初始化加载数据
+                loadAllData();
+
+                return {
+                    appTitle,
+                    activeTab,
+                    tabs,
+                    collapsedCards,
+                    toggleCard,
+                    toastMessage,
+                    showToast,
+                    competitorAnalysis,
+                    caseStudies,
+                    newGameName,
+                    newGameType,
+                    addGame,
+                    loadCase,
+                    removeGame,
+                    clearCompetitorAnalysis,
+                    generateRadarChart,
+                    exportRadarChart,
+                    exportCompetitorAnalysis,
+                    userPersona,
+                    playerTypeQuestions,
+                    playerTypeAnswers,
+                    playerTypeTestVisible,
+                    calculatePlayerType,
+                    personaTemplates,
+                    loadPersonaTemplate,
+                    interviewQuestions,
+                    onDragStart,
+                    onDragOver,
+                    onDragEnd,
+                    removeInterviewQuestion,
+                    addCustomQuestion,
+                    savePersona,
+                    exportPersona,
+                    personaImportInput,
+                    triggerImportPersona,
+                    importPersona,
+                    interviewSession,
+                    guideTypes,
+                    insightCategories,
+                    interviewGuideTemplates,
+                    getQuestionTypeColor,
+                    loadGuideTemplate,
+                    addGuideQuestion,
+                    removeGuideQuestion,
+                    addInterviewRecord,
+                    removeInterviewRecord,
+                    extractInsights,
+                    removeInsight,
+                    clearInterview,
+                    exportInterview,
+                    questionnaire,
+                    questionTypes,
+                    questionDimensions,
+                    newQuestion,
+                    questionnaireTemplates,
+                    loadQuestionnaireTemplate,
+                    getQuestionTypeLabel,
+                    getDimensionLabel,
+                    addQuestion,
+                    removeQuestion,
+                    removeOption,
+                    addOption,
+                    moveQuestion,
+                    onQuestionDragStart,
+                    onQuestionDragOver,
+                    onQuestionDragEnd,
+                    exportToExcel,
+                    saveQuestionnaire,
+                    loadQuestionnaire,
+                    reportConfig,
+                    uploadedData,
+                    isDataUploaded,
+                    statistics,
+                    statisticsKeys,
+                    refinedPersona,
+                    getBarColor,
+                    handleDataUpload,
+                    calculateStatistics,
+                    generateRefinedPersona,
+                    exportRefinedPersona,
+                    clearAnalysis,
+                    aarrrData,
+                    editAarrrItem,
+                    trendData,
+                    initVisualizationCharts,
+                    refreshAllCharts,
+                    reportConfig,
+                    generateWordReport,
+                    importData,
+                    exportData,
+                    generateReport
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
