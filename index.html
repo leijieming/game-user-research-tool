@@ -29,16 +29,40 @@
     
     <style>
         :root {
-            --primary: #4F46E5;
-            --primary-hover: #4338CA;
-            --bg: #F9FAFB;
-            --card-bg: #FFFFFF;
-            --text: #1F2937;
-            --text-secondary: #6B7280;
-            --border: #E5E7EB;
+            /* 主色渐变 */
+            --primary: #667EEA;
+            --primary-hover: #764BA2;
+            --primary-gradient: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+            
+            /* 背景色 */
+            --bg: #1a1a2e;
+            --bg-gradient: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            --card-bg: rgba(255, 255, 255, 0.08);
+            --bg-secondary: #0F3460;
+            
+            /* 玻璃效果 */
+            --glass-bg: rgba(255, 255, 255, 0.08);
+            --glass-bg-hover: rgba(255, 255, 255, 0.12);
+            --glass-border: rgba(255, 255, 255, 0.15);
+            --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            
+            /* 文字色 */
+            --text: #FFFFFF;
+            --text-secondary: #E2E8F0;
+            --text-muted: #A0AEC0;
+            --text-accent: #667EEA;
+            
+            /* 边框色 */
+            --border: rgba(255, 255, 255, 0.15);
+            
+            /* 状态色 */
             --success: #10B981;
             --warning: #F59E0B;
             --danger: #EF4444;
+            
+            /* 发光效果 */
+            --glow-color: rgba(102, 126, 234, 0.4);
+            --glow-spread: 0 0 20px var(--glow-color);
         }
         
         * {
@@ -48,29 +72,34 @@
         }
         
         body {
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background-color: var(--bg);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg-gradient);
             padding: 20px;
             color: var(--text);
             line-height: 1.6;
+            min-height: 100vh;
         }
         
         #app {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
         
         .app-container {
-            background-color: var(--card-bg);
-            border-radius: 12px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: var(--glass-shadow);
             overflow: hidden;
         }
         
         .app-header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-hover) 100%);
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border);
             color: white;
-            padding: 24px 32px;
+            padding: 20px 28px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -79,8 +108,12 @@
         }
         
         .app-header h1 {
-            font-size: 24px;
-            font-weight: 600;
+            font-size: 22px;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         
         .header-actions {
@@ -91,10 +124,11 @@
         
         .tab-nav {
             display: flex;
-            background-color: #fff;
-            border-bottom: 1px solid var(--border);
+            background: rgba(0, 0, 0, 0.15);
+            border-bottom: 1px solid var(--glass-border);
             overflow-x: auto;
             scrollbar-width: thin;
+            padding: 0 8px;
         }
         
         .tab-nav::-webkit-scrollbar {
@@ -102,41 +136,36 @@
         }
         
         .tab-nav::-webkit-scrollbar-thumb {
-            background-color: var(--border);
+            background-color: var(--glass-border);
             border-radius: 2px;
         }
         
         .tab-btn {
-            padding: 16px 24px;
+            padding: 14px 20px;
             border: none;
             background: none;
             cursor: pointer;
             font-size: 14px;
             font-weight: 500;
-            color: var(--text-secondary);
+            color: var(--text-muted);
             white-space: nowrap;
             position: relative;
-            transition: color 0.2s, background-color 0.2s;
+            transition: all 0.3s ease;
+            border-radius: 10px 10px 0 0;
         }
         
         .tab-btn:hover {
-            color: var(--primary);
-            background-color: rgba(79, 70, 229, 0.05);
+            color: var(--text-secondary);
+            background: var(--glass-bg);
         }
         
         .tab-btn.active {
-            color: var(--primary);
+            color: white;
+            background: var(--primary-gradient);
         }
         
         .tab-btn.active::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background-color: var(--primary);
-            border-radius: 3px 3px 0 0;
+            display: none;
         }
         
         .main-content {
@@ -156,10 +185,10 @@
         .module-placeholder {
             padding: 40px;
             text-align: center;
-            color: var(--text-secondary);
-            background-color: var(--bg);
-            border-radius: 8px;
-            border: 2px dashed var(--border);
+            color: var(--text-muted);
+            background: var(--glass-bg);
+            border-radius: 12px;
+            border: 1px dashed var(--glass-border);
         }
         
         .btn {
@@ -168,53 +197,68 @@
             justify-content: center;
             gap: 8px;
             padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
             font-size: 14px;
             font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
+            background: var(--glass-bg);
+            color: var(--text-secondary);
+        }
+        
+        .btn:hover {
+            background: var(--glass-bg-hover);
+            border-color: var(--primary);
+            color: var(--text);
+            transform: translateY(-2px);
         }
         
         .btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+            transform: none;
         }
         
         .btn-primary {
-            background-color: var(--primary);
+            background: var(--primary-gradient);
+            border: none;
             color: white;
         }
         
         .btn-primary:hover:not(:disabled) {
-            background-color: var(--primary-hover);
+            box-shadow: var(--glow-spread);
+            transform: scale(1.02);
         }
         
         .btn-secondary {
-            background-color: #E5E7EB;
-            color: var(--text);
+            background: var(--glass-bg);
+            color: var(--text-secondary);
         }
         
         .btn-secondary:hover:not(:disabled) {
-            background-color: #D1D5DB;
+            background: var(--glass-bg-hover);
+            border-color: var(--primary-light);
         }
         
         .btn-danger {
-            background-color: var(--danger);
+            background: var(--danger);
+            border: none;
             color: white;
         }
         
         .btn-danger:hover:not(:disabled) {
-            background-color: #DC2626;
+            background: #DC2626;
         }
         
         .btn-success {
-            background-color: var(--success);
+            background: var(--success);
+            border: none;
             color: white;
         }
         
         .btn-success:hover:not(:disabled) {
-            background-color: #059669;
+            background: #059669;
         }
         
         .btn-sm {
@@ -228,11 +272,19 @@
         }
         
         .card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
             padding: 20px;
             margin-bottom: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            border-color: var(--primary);
+            box-shadow: var(--glass-shadow), var(--glow-spread);
+            transform: translateY(-2px);
         }
         
         .card-header {
@@ -241,6 +293,11 @@
             align-items: center;
             cursor: pointer;
             user-select: none;
+            color: var(--text);
+            font-weight: 600;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--glass-border);
+            margin-bottom: 16px;
         }
         
         .card-title {
@@ -256,6 +313,7 @@
             align-items: center;
             justify-content: center;
             transition: transform 0.2s;
+            color: var(--text-muted);
         }
         
         .card-toggle.collapsed {
@@ -271,16 +329,22 @@
         }
         
         .collapsible-card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
             margin-bottom: 16px;
             overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .collapsible-card:hover {
+            border-color: var(--primary);
         }
         
         .collapsible-card .card-header {
             padding: 16px 20px;
-            background-color: var(--bg);
+            background: rgba(0, 0, 0, 0.1);
         }
         
         .collapsible-card .card-content {
@@ -295,7 +359,7 @@
             display: block;
             font-size: 14px;
             font-weight: 500;
-            color: var(--text);
+            color: var(--text-secondary);
             margin-bottom: 6px;
         }
         
@@ -303,13 +367,13 @@
         .form-group textarea,
         .form-group select {
             width: 100%;
-            padding: 10px 14px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
+            padding: 12px 16px;
+            border: 1px solid var(--glass-border);
+            border-radius: 10px;
             font-size: 14px;
             color: var(--text);
-            background-color: #fff;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            background: var(--glass-bg);
+            transition: all 0.3s ease;
         }
         
         .form-group input:focus,
@@ -317,7 +381,7 @@
         .form-group select:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
         }
         
         .form-group textarea {
@@ -346,18 +410,19 @@
         }
         
         .template-card {
-            background-color: var(--card-bg);
-            border: 1px solid var(--border);
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
             border-radius: 12px;
             padding: 20px;
             cursor: pointer;
-            transition: all 0.2s;
+            transition: all 0.3s ease;
         }
         
         .template-card:hover {
+            background: var(--glass-bg-hover);
             border-color: var(--primary);
-            box-shadow: 0 4px 12px rgba(79, 70, 229, 0.15);
-            transform: translateY(-2px);
+            box-shadow: var(--glow-spread);
+            transform: translateY(-4px);
         }
         
         .template-card h4 {
@@ -369,14 +434,14 @@
         
         .template-card p {
             font-size: 13px;
-            color: var(--text-secondary);
+            color: var(--text-muted);
             margin-bottom: 12px;
         }
         
         .template-tag {
             display: inline-block;
             padding: 4px 10px;
-            background-color: rgba(79, 70, 229, 0.1);
+            background: rgba(102, 126, 234, 0.2);
             color: var(--primary);
             font-size: 12px;
             border-radius: 20px;
@@ -392,26 +457,31 @@
         table td {
             padding: 12px 16px;
             text-align: left;
-            border-bottom: 1px solid var(--border);
+            border-bottom: 1px solid var(--glass-border);
         }
         
         table th {
-            background-color: var(--bg);
+            background: rgba(0, 0, 0, 0.2);
             font-weight: 600;
-            color: var(--text);
+            color: var(--text-secondary);
             font-size: 13px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         
         table tr:hover {
-            background-color: rgba(79, 70, 229, 0.02);
+            background: var(--glass-bg);
+        }
+        
+        table tr td {
+            color: var(--text);
         }
         
         .chart-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
             padding: 24px;
             margin-bottom: 20px;
         }
@@ -496,23 +566,23 @@
         }
         
         .badge-primary {
-            background-color: rgba(79, 70, 229, 0.1);
+            background: rgba(102, 126, 234, 0.2);
             color: var(--primary);
         }
         
         .badge-success {
-            background-color: rgba(16, 185, 129, 0.1);
+            background: rgba(16, 185, 129, 0.2);
             color: var(--success);
         }
         
         .badge-warning {
-            background-color: rgba(245, 158, 11, 0.1);
+            background: rgba(245, 158, 11, 0.2);
             color: var(--warning);
         }
         
         .divider {
             height: 1px;
-            background-color: var(--border);
+            background: var(--glass-border);
             margin: 20px 0;
         }
         
