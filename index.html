@@ -2258,25 +2258,35 @@
                     { id: 5, question: '你会主动研究游戏机制并分享攻略吗？', options: [{ text: '会', score: { explorer: 2, achievement: 1 } }, { text: '不会', score: {} }] }
                 ]);
 
-                const playerTypeAnswers = ref([]);
+                // 初始化固定长度的答案数组，避免动态索引问题
+                const playerTypeAnswers = ref([undefined, undefined, undefined, undefined, undefined]);
                 const playerTypeTestVisible = ref(false);
 
                 const calculatePlayerType = () => {
                     const scores = { achievement: 0, explorer: 0, social: 0, killer: 0 };
-                    playerTypeAnswers.value.forEach((answer, index) => {
-                        if (playerTypeQuestions.value[index] && playerTypeQuestions.value[index].options[answer]) {
+                    const answers = playerTypeAnswers.value || [];
+                    answers.forEach((answer, index) => {
+                        if (answer !== undefined && playerTypeQuestions.value[index] && playerTypeQuestions.value[index].options[answer]) {
                             const option = playerTypeQuestions.value[index].options[answer];
-                            Object.keys(option.score).forEach(type => {
-                                scores[type] += option.score[type];
+                            Object.keys(option.score || {}).forEach(type => {
+                                scores[type] = (scores[type] || 0) + (option.score[type] || 0);
                             });
                         }
                     });
-                    const maxType = Object.entries(scores).reduce((a, b) => b[1] > a[1] ? b : a, [0, 0])[0];
+                    // 找出最高分类型
+                    let maxType = 'achievement';
+                    let maxScore = 0;
+                    Object.entries(scores).forEach(([type, score]) => {
+                        if (score > maxScore) {
+                            maxScore = score;
+                            maxType = type;
+                        }
+                    });
                     const typeNames = { achievement: '成就型', explorer: '探索型', social: '社交型', killer: '杀手型' };
-                    userPersona.value.playerType.type = typeNames[maxType];
+                    userPersona.value.playerType.type = typeNames[maxType] || '成就型';
                     userPersona.value.playerType.score = scores;
                     playerTypeTestVisible.value = false;
-                    showToast('玩家类型判定完成：' + typeNames[maxType]);
+                    showToast('玩家类型判定完成：' + (typeNames[maxType] || '成就型'));
                 };
 
                 // 画像模板
@@ -2320,7 +2330,17 @@
                 ]);
 
                 const loadPersonaTemplate = (t) => {
-                    userPersona.value = JSON.parse(JSON.stringify(t));
+                    // 浅拷贝，避免深拷贝导致性能问题
+                    userPersona.value = {
+                        ...t,
+                        basicInfo: { ...t.basicInfo },
+                        gameHabit: { ...t.gameHabit },
+                        spending: { ...t.spending },
+                        motivation: { ...t.motivation },
+                        goals: { ...t.goals },
+                        playerType: { type: '', score: { achievement: 0, explorer: 0, social: 0, killer: 0 } },
+                        interviewQuestions: []
+                    };
                     showToast('已加载模板：' + t.name);
                 };
 
